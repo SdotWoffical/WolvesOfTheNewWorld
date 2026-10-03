@@ -51,7 +51,7 @@
         }
 
         .dropbtn {
-            background-image: url('gui/yellow.jpg');
+            background-image: url('gui/button.jpg');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
@@ -105,7 +105,7 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            background-image: url('gui/yellow.jpg');
+            background-image: url('gui/button.jpg');
             background-size: cover;
             background-position: center;
             background-color: #d4af37;
@@ -204,7 +204,7 @@
             width: 60%;
             padding: 12px;
             margin-top: 12px;
-            background-image: url('gui/orange.jpg');
+            background-image: url('gui/button.jpg');
             background-size: cover;
             background-position: center;
             background-color: #e86a33;
@@ -302,7 +302,7 @@
         }
 
         .action-btn {
-            background-image: url('gui/orange.jpg');
+            background-image: url('gui/button.jpg');
             background-size: cover;
             background-position: center;
             background: #e86a33;
@@ -420,7 +420,7 @@
             <div class="chat-container" id="game-chat-messages"></div>
             <div style="display: flex; gap: 5px; margin-top: 8px;">
                 <input type="text" id="game-chat-input" placeholder="Type message..." maxlength="100" style="flex:1; padding:8px; border-radius:4px; border:none; font-family:monospace;" onkeydown="if(event.key==='Enter') sendChat('game')">
-                <button onclick="sendChat('game')" style="width: 55px; background-image: url('gui/orange.jpg'); background-size: cover; border:none; color:#fff; border-radius:4px; font-weight:bold; cursor:pointer;">Send</button>
+                <button onclick="sendChat('game')" style="width: 55px; background-image: url('gui/button.jpg'); background-size: cover; border:none; color:#fff; border-radius:4px; font-weight:bold; cursor:pointer;">Send</button>
             </div>
         </div>
 
@@ -517,22 +517,21 @@
             'background/bg3.jpg'
         ];
 
-        let currentBgIndex = 0;
         const bgElement = document.getElementById('bg-slideshow');
 
         function updateBackground() {
             if (bgImages.length === 0) return;
+            const randomIndex = Math.floor(Math.random() * bgImages.length);
             bgElement.style.opacity = '0';
             setTimeout(() => {
-                bgElement.style.backgroundImage = `url('${bgImages[currentBgIndex]}')`;
+                bgElement.style.backgroundImage = `url('${bgImages[randomIndex]}')`;
                 bgElement.style.opacity = '0.5';
-                currentBgIndex = (currentBgIndex + 1) % bgImages.length;
             }, 1500);
         }
 
         if (bgImages.length > 0) {
-            bgElement.style.backgroundImage = `url('${bgImages[0]}')`;
-            currentBgIndex = 1 % bgImages.length;
+            const initialIndex = Math.floor(Math.random() * bgImages.length);
+            bgElement.style.backgroundImage = `url('${bgImages[initialIndex]}')`;
         }
         setInterval(updateBackground, 10000);
 
