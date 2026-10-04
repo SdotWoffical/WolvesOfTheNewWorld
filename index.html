@@ -3,514 +3,366 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Werewolves - Icon Collection & Pack Opener</title>
-    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <title>Wolves of the New World - Salem P2P Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/peerjs@1.4.7/dist/peerjs.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Courier+Prime&display=swap');
-
-        body {
-            font-family: 'Courier Prime', monospace;
-            background-color: #050505;
-            color: #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            min-height: 100vh;
-            margin: 0;
-            overflow-x: hidden;
-            position: relative;
+        :root {
+            --bg-color: #1a0a05;
+            --panel-bg: #2d1207;
+            --panel-border: #7a3b1e;
+            --accent-gold: #ffe680;
+            --text-main: #f4e8d1;
+            --btn-bg: #8b3a2b;
+            --btn-hover: #a54635;
         }
 
-        /* Background Slideshow Layer */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Playfair Display', serif;
+            overflow-x: hidden;
+        }
+
         #bg-slideshow {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            z-index: -100;
             background-size: cover;
             background-position: center;
-            background-repeat: no-repeat;
-            transition: opacity 1.5s ease-in-out;
             opacity: 0.5;
-            filter: brightness(0.6);
+            z-index: -2;
+            transition: opacity 1.5s ease-in-out, background-image 1.5s ease-in-out;
         }
 
-        .nav-bar {
-            display: flex;
-            gap: 15px;
-            margin-top: 20px;
-            z-index: 200;
-        }
-
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .dropbtn {
-            background-image: url('gui/button.jpg');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-color: #d4af37;
-            color: #1a1a1a;
-            font-family: 'Cinzel', serif;
-            font-weight: 700;
-            padding: 10px 20px;
-            font-size: 14px;
-            border: 2px solid #554010;
-            border-radius: 10px;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.4);
-            width: 130px;
-            text-align: center;
-        }
-
-        .dropbtn:hover { filter: brightness(1.15); }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-image: url('gui/yellow.jpg');
-            background-size: cover;
-            background-position: center;
-            min-width: 130px;
-            box-shadow: 0px 8px 16px rgba(0,0,0,0.6);
-            border-radius: 8px;
-            overflow: hidden;
-            z-index: 201;
-            margin-top: 5px;
-            border: 2px solid #554010;
-        }
-
-        .dropdown-content button {
-            color: #1a1a1a;
-            padding: 10px;
-            background: none;
-            border: none;
-            width: 100%;
-            text-align: center;
-            font-family: 'Cinzel', serif;
-            font-weight: 700;
-            cursor: pointer;
-        }
-
-        .dropdown-content button:hover { background-color: rgba(243, 223, 136, 0.4); }
-        .show { display: block; }
-
-        #back-btn {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background-image: url('gui/button.jpg');
-            background-size: cover;
-            background-position: center;
-            background-color: #d4af37;
-            color: #1a1a1a;
-            border: 2px solid #554010;
-            padding: 8px 18px;
-            border-radius: 8px;
-            font-family: 'Cinzel', serif;
-            font-weight: 700;
-            cursor: pointer;
-            z-index: 200;
-        }
-
-        #sky-overlay {
+        .overlay-vignette {
             position: fixed;
             top: 0;
-            left: -150px;
-            width: 120px;
-            height: 120px;
-            border-radius: 50%;
-            z-index: 99;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, rgba(26,10,5,0.4) 0%, rgba(10,3,1,0.9) 100%);
+            z-index: -1;
             pointer-events: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 50px;
         }
 
-        @keyframes flyAcross {
-            0% { left: -150px; top: 15vh; transform: scale(0.8) rotate(0deg); }
-            50% { left: 50vw; top: 5vh; transform: scale(1.3) rotate(180deg); }
-            100% { left: 105vw; top: 15vh; transform: scale(0.8) rotate(360deg); }
-        }
-
-        .animate-sun-moon {
-            animation: flyAcross 3.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-
-        .olive-panel {
-            background-image: url('gui/green.jpg');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-color: #9c9938;
-            border: 3px solid #3d3b12;
-            border-radius: 16px;
-            padding: 18px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-            color: #1a1a1a;
-            box-sizing: border-box;
-        }
-
-        .title-container {
-            display: flex;
-            gap: 30px;
-            margin-top: 30px;
-            max-width: 950px;
-            width: 100%;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .auth-box {
-            background-image: url('gui/orange.jpg');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-color: #7a3b1e;
-            border: 4px solid #4a220f;
-            border-radius: 20px;
-            padding: 30px;
-            width: 420px;
+        header {
             text-align: center;
+            padding: 20px;
+            border-bottom: 2px solid var(--panel-border);
+            background: rgba(26, 10, 5, 0.85);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.7);
         }
 
-        .oval-input {
-            width: 85%;
-            padding: 14px;
-            margin: 10px 0;
-            background-image: url('gui/orange.jpg');
-            background-size: cover;
-            background-position: center;
-            background-color: #e86a33;
-            border: 3px solid #b34211;
-            color: #fff;
+        h1 {
             font-family: 'Cinzel', serif;
-            font-size: 15px;
-            font-weight: 700;
-            text-align: center;
-            border-radius: 50px;
-            outline: none;
-            filter: brightness(0.9);
+            font-weight: 900;
+            color: var(--accent-gold);
+            margin: 0;
+            font-size: 2.2rem;
+            text-shadow: 2px 2px 4px #000;
+            letter-spacing: 2px;
         }
 
-        .oval-btn {
-            width: 60%;
-            padding: 12px;
-            margin-top: 12px;
-            background-image: url('gui/button.jpg');
-            background-size: cover;
-            background-position: center;
-            background-color: #e86a33;
-            border: 3px solid #b34211;
-            color: #fff;
-            font-family: 'Cinzel', serif;
-            font-size: 16px;
-            font-weight: 700;
-            border-radius: 50px;
-            cursor: pointer;
+        .subtitle {
+            font-style: italic;
+            font-size: 0.95rem;
+            color: #d1b38e;
+            margin-top: 5px;
         }
-        .oval-btn:hover { filter: brightness(1.15); }
 
-        .game-grid {
-            display: grid;
-            grid-template-columns: 320px 580px;
-            grid-template-rows: auto auto;
-            gap: 20px;
-            margin-top: 25px;
-            max-width: 950px;
-            width: 100%;
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
             padding: 0 15px;
-            box-sizing: border-box;
         }
 
-        .panel-discuss {
-            grid-column: 1;
-            grid-row: 1 / span 2;
-            display: flex;
-            flex-direction: column;
-            height: 480px;
-        }
-
-        .chat-container {
-            background-image: url('gui/orange.jpg');
-            background-size: cover;
-            background-position: center;
-            border: 2px solid #3d3b12;
+        .panel {
+            background: var(--panel-bg);
+            border: 3px solid var(--panel-border);
             border-radius: 8px;
-            flex: 1;
-            overflow-y: auto;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.8);
+            margin-bottom: 25px;
+        }
+
+        .hidden { display: none !important; }
+
+        input, select {
+            background: #150602;
+            border: 2px solid var(--panel-border);
+            color: var(--text-main);
             padding: 10px;
-            margin-top: 8px;
-            font-size: 11px;
-            color: #fff;
-            text-align: left;
-        }
-        .chat-msg span { color: #f3df88; font-weight: bold; }
-        .profile-icon {
-            width: 16px;
-            height: 16px;
-            vertical-align: middle;
-            display: inline-block;
-            border-radius: 3px;
-            border: 1px solid #d4af37;
-            margin-right: 4px;
+            font-family: 'Playfair Display', serif;
+            border-radius: 4px;
+            font-size: 1rem;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 15px;
         }
 
-        .panel-morning {
-            grid-column: 2;
-            grid-row: 1;
-            border-radius: 35px;
-            text-align: center;
-            padding: 15px;
+        .action-btn {
+            background: var(--btn-bg);
+            color: var(--accent-gold);
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            border: 2px solid var(--accent-gold);
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1.1rem;
+            text-shadow: 1px 1px 2px #000;
+            transition: background 0.2s, transform 0.1s;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
-        .panel-deaths {
-            grid-column: 2;
-            grid-row: 2;
-            min-height: 200px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+        .action-btn:hover {
+            background: var(--btn-hover);
+            transform: translateY(-1px);
         }
 
-        .bottom-bar-grid {
-            grid-column: 1 / span 2;
+        .action-btn:active {
+            transform: translateY(1px);
+        }
+
+        .grid-2 {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
         }
 
-        .inner-sub-box {
-            background-image: url('gui/green.jpg');
-            background-size: cover;
-            background-position: center;
-            background: #b5b242;
-            border: 2px solid #3d3b12;
-            border-radius: 10px;
+        .chat-box {
+            background: #150602;
+            border: 2px solid var(--panel-border);
+            border-radius: 4px;
+            height: 160px;
+            overflow-y: auto;
             padding: 10px;
-            margin-top: 6px;
-            text-align: center;
-            font-weight: bold;
-            font-family: 'Cinzel', serif;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
         }
 
-        .action-btn {
-            background-image: url('gui/button.jpg');
-            background-size: cover;
-            background-position: center;
-            background: #e86a33;
-            color: #fff;
-            border: 2px solid #b34211;
-            padding: 8px 12px;
-            margin: 4px 0;
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: 'Cinzel', serif;
-            font-weight: bold;
-            width: 100%;
+        .chat-msg {
+            margin-bottom: 6px;
+            border-bottom: 1px dashed rgba(122,59,30,0.3);
+            padding-bottom: 3px;
         }
-        .action-btn:hover { filter: brightness(1.15); }
 
+        /* Sky Day/Night Animation Overlay */
+        #sky-overlay {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            font-size: 2.5rem;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        @keyframes sunMoonAnim {
+            0% { transform: scale(0.5) translateY(20px); opacity: 0; }
+            50% { transform: scale(1.2) translateY(0px); opacity: 1; }
+            100% { transform: scale(1) translateY(0px); opacity: 0.9; }
+        }
+
+        .animate-sun-moon {
+            animation: sunMoonAnim 1.5s ease-in-out forwards;
+        }
+
+        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
             z-index: 1000;
-            left: 0; top: 0; width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            justify-content: center; align-items: center;
+            justify-content: center;
+            align-items: center;
         }
         .modal-content {
-            background-image: url('gui/orange.jpg');
-            background-size: cover;
-            background-position: center;
-            background-color: #7a3b1e;
-            border: 4px solid #4a220f;
-            padding: 30px;
-            border-radius: 16px;
-            width: 520px;
-            max-height: 80vh;
+            background: var(--panel-bg);
+            border: 3px solid var(--accent-gold);
+            padding: 25px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 85vh;
             overflow-y: auto;
-            color: #fff;
-            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.9);
         }
-        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 22px; cursor: pointer; color: #f3df88; }
-
-        .hidden { display: none !important; }
-        ul { list-style: none; padding: 0; margin: 0; text-align: left; }
+        .close-modal {
+            float: right;
+            cursor: pointer;
+            color: var(--accent-gold);
+            font-family: 'Cinzel', serif;
+            font-weight: 900;
+            font-size: 1.2rem;
+        }
     </style>
 </head>
 <body>
 
     <div id="bg-slideshow"></div>
+    <div class="overlay-vignette"></div>
+    <div id="sky-overlay">🌙</div>
 
-    <button id="back-btn" class="hidden" onclick="resetToTitle()">Back</button>
-    <div id="sky-overlay">☀️</div>
+    <header>
+        <h1>WOLVES OF THE NEW WORLD</h1>
+        <div class="subtitle">A Tale of Salem, Suspicion, and Survival</div>
+    </header>
 
-    <div class="nav-bar" id="top-nav-bar">
-        <div class="dropdown">
-            <button onclick="toggleDropdown('hostJoinDrop', event)" class="dropbtn">Host/Join</button>
-            <div id="hostJoinDrop" class="dropdown-content">
-                <button onclick="selectMode('host')">Host</button>
-                <button onclick="selectMode('join')">Join</button>
-            </div>
-        </div>
-        <div class="dropdown">
-            <button onclick="toggleDropdown('collectionDrop', event)" class="dropbtn">Collection</button>
-            <div id="collectionDrop" class="dropdown-content">
-                <button onclick="openModal('collectionModal')">Open Packs</button>
-            </div>
-        </div>
-        <div class="dropdown">
-            <button onclick="toggleDropdown('rulesDrop', event)" class="dropbtn">Rules</button>
-            <div id="rulesDrop" class="dropdown-content"><button onclick="openModal('rulesModal')">View</button></div>
-        </div>
-        <div class="dropdown">
-            <button onclick="toggleDropdown('rolesDrop', event)" class="dropbtn">Roles</button>
-            <div id="rolesDrop" class="dropdown-content"><button onclick="openModal('rolesModal')">View</button></div>
-        </div>
-        <div class="dropdown">
-            <button onclick="toggleDropdown('ranksDrop', event)" class="dropbtn">Ranks/XP</button>
-            <div id="ranksDrop" class="dropdown-content"><button onclick="openModal('ranksModal')">View</button></div>
-        </div>
-    </div>
-
-    <div class="title-container" id="title-screen-container">
-        <div class="auth-box">
-            <div id="auth-form-section">
-                <input type="text" id="player-name" class="oval-input" placeholder="NAME" maxlength="12">
-                <input type="text" id="room-password" class="oval-input" placeholder="ROOM ID" maxlength="15">
-                <button onclick="setupGameSession()" class="oval-btn">enter</button>
-                <p id="connection-status" style="font-size: 11px; color: #f3df88; margin-top: 10px;">Select Host/Join above & enter details</p>
-            </div>
-
-            <div id="lobby-active-section" class="hidden">
-                <h3 style="margin-top:0; color:#f3df88; font-family:'Cinzel',serif;">Lobby: <span id="display-room-code"></span></h3>
-                <p style="font-size: 12px; color: #fceee9;">Players in Lobby (<span id="player-count">0</span>):</p>
-                <ul id="player-list" style="max-height: 100px; overflow-y: auto; margin-bottom: 10px;"></ul>
-                
-                <div id="host-controls" class="hidden" style="border-top: 2px solid #5a2812; padding-top: 10px;">
-                    <div style="display: flex; justify-content: space-around; font-size: 11px; margin-bottom: 8px; color:#fff;">
-                        <div>Wolves: <input type="number" id="setting-wolves" value="1" min="1" max="5" style="width:35px;"></div>
-                        <div>Seers: <input type="number" id="setting-seers" value="1" min="0" max="3" style="width:35px;"></div>
-                        <div>Witches: <input type="number" id="setting-witches" value="1" min="0" max="2" style="width:35px;"></div>
-                        <div>Hunters: <input type="number" id="setting-hunters" value="1" min="0" max="2" style="width:35px;"></div>
-                    </div>
-                    <button onclick="startP2PGame()" class="oval-btn" style="width:100%;">Start Game</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="auth-box" style="width: 380px; text-align: left;">
-            <h2 style="font-family:'Cinzel',serif; color:#f3df88; text-align:center; margin-top:0;">WELCOME TO WOLVES</h2>
-            <p style="font-size: 12px; line-height: 1.4; color: #f7e6dc;">You live in a town, a quiet town at least that's what you think, some people you may have known for years may just be wolves trying to kill you.</p>
-            <p style="font-size: 12px; line-height: 1.4; color: #f7e6dc;">Experience what the Salem Witch Trials would have felt like and remember a single rule... don't trust anyone...</p>
-        </div>
-    </div>
-
-    <div class="game-grid hidden" id="game-screen-grid">
-        <div class="olive-panel panel-discuss">
-            <h3 style="font-family:'Cinzel',serif; margin:0; text-align:center;">DISCUSS</h3>
-            <div class="chat-container" id="game-chat-messages"></div>
-            <div style="display: flex; gap: 5px; margin-top: 8px;">
-                <input type="text" id="game-chat-input" placeholder="Type message..." maxlength="100" style="flex:1; padding:8px; border-radius:4px; border:none; font-family:monospace;" onkeydown="if(event.key==='Enter') sendChat('game')">
-                <button onclick="sendChat('game')" style="width: 55px; background-image: url('gui/button.jpg'); background-size: cover; border:none; color:#fff; border-radius:4px; font-weight:bold; cursor:pointer;">Send</button>
-            </div>
-        </div>
-
-        <div class="olive-panel panel-morning">
-            <h2 id="phase-label" style="font-family:'Cinzel',serif; margin:0; font-size: 18px;">MORNING</h2>
-            <p id="timer-display" style="font-size: 13px; margin: 4px 0 0 0; color: #3d3b12;">Time Left: 30s</p>
-        </div>
-
-        <div class="olive-panel panel-deaths">
-            <div>
-                <h4 id="death-header-title" style="font-family:'Cinzel',serif; margin:0 0 8px 0; font-size: 14px; text-align: center;">NIGHT ACTIVITY & EVENTS</h4>
-                <p id="game-narrative" style="font-size: 12px; margin: 0 0 8px 0; text-align: center; font-weight:bold;"></p>
-            </div>
-            <div id="target-list" style="max-height: 110px; overflow-y: auto;"></div>
-        </div>
-
-        <div class="bottom-bar-grid">
-            <div class="olive-panel" style="padding: 12px;">
-                <div class="inner-sub-box" style="margin-top:0;">votes:</div>
-                <div id="votes-display-box" style="max-height: 80px; overflow-y: auto; font-size: 12px; margin-top: 6px;">
-                    <div style="text-align:center; color:#3d3b12;">No votes cast yet</div>
-                </div>
-            </div>
-
-            <div class="olive-panel" style="display: flex; gap: 10px; padding: 12px;">
-                <div style="flex: 1;">
-                    <div class="inner-sub-box" style="margin-top:0;">abilities:</div>
-                    <div id="ability-status-box" class="inner-sub-box" style="background-image: url('gui/orange.jpg'); background-size: cover; color:#fff; font-size: 11px;">none</div>
-                </div>
-                <div style="flex: 1;">
-                    <div class="inner-sub-box" style="margin-top:0;">Your role:</div>
-                    <div id="my-role-display" class="inner-sub-box" style="background-image: url('gui/yellow.jpg'); background-size: cover; font-size: 12px;">villager</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="collectionModal" class="modal">
-        <div class="modal-content" style="text-align: center;">
-            <span class="close-modal" onclick="closeModal('collectionModal')">&times;</span>
-            <h2 style="font-family:'Cinzel',serif; color:#f3df88; margin-top:0;">Supply Crate Collection</h2>
-            <p>Win Coins Available: <span id="player-coins-display" style="color: #f3df88; font-weight: bold;">0</span> 🪙 (Earn 1 per match won)</p>
+    <div class="container">
+        
+        <!-- TITLE / AUTH SCREEN -->
+        <div id="auth-form-section" class="panel">
+            <h2 style="font-family:'Cinzel'; color:var(--accent-gold); margin-top:0;">Enter the Colony</h2>
+            <label for="player-name">Colony Resident Name:</label>
+            <input type="text" id="player-name" placeholder="e.g. Giles Corey" maxlength="20">
             
-            <div style="background-image: url('gui/orange.jpg'); background-size: cover; border: 2px solid #b34211; border-radius: 12px; padding: 15px; margin: 15px 0;">
-                <div id="pack-reveal-box" style="font-size: 32px; margin-bottom: 8px;">📦</div>
-                <p id="pack-result-text" style="font-size: 12px; margin: 5px 0 12px 0; color:#fceee9;">Open a pack for 1 Win Coin!</p>
-                <button onclick="openSupplyPack()" class="oval-btn" style="width: 70%;">Open Pack (1 🪙)</button>
+            <label for="room-password">Meeting Room Code:</label>
+            <input type="text" id="room-password" placeholder="e.g. salem1692" maxlength="15">
+
+            <div class="grid-2">
+                <button class="action-btn" onclick="selectMode('host')">Host Meeting</button>
+                <button class="action-btn" onclick="selectMode('join')">Join Meeting</button>
+            </div>
+            
+            <button class="action-btn" style="background:#552211; margin-top:10px;" onclick="setupGameSession()">Connect & Enter Lobby</button>
+            <div id="connection-status" style="text-align:center; font-style:italic; color:var(--accent-gold); margin-top:10px;">Select Host or Join to begin.</div>
+
+            <div style="margin-top:20px; display:flex; justify-content:space-between;">
+                <button class="action-btn" style="width:48%; background:#422; font-size:0.9rem;" onclick="openModal('collectionModal')">📦 Icon Collection</button>
+                <button class="action-btn" style="width:48%; background:#422; font-size:0.9rem;" onclick="openModal('ranksModal')">📜 Profile Ranks & XP</button>
+            </div>
+        </div>
+
+        <!-- LOBBY / ACTIVE SECTION -->
+        <div id="lobby-active-section" class="panel hidden">
+            <h2 style="font-family:'Cinzel'; color:var(--accent-gold); margin-top:0;">Village Meeting Chamber</h2>
+            <p>Room Code: <b id="display-room-code" style="color:var(--accent-gold);">---</b></p>
+            
+            <div style="margin-bottom:15px;">
+                <h3 style="margin:5px 0; font-size:1.1rem; color:var(--accent-gold);">Gathered Residents (<span id="player-count">0</span>)</h3>
+                <ul id="player-list" style="list-style-type:none; padding-left:0; max-height:120px; overflow-y:auto; background:#150602; border:2px solid var(--panel-border); border-radius:4px; padding:8px;"></ul>
             </div>
 
-            <h3 style="font-family:'Cinzel',serif; color:#f3df88; margin-bottom: 8px; font-size:15px;">Your Unlocked Icons (<span id="total-icons-count">100</span> Total)</h3>
-            <div id="icon-collection-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; max-height: 200px; overflow-y: auto; background-image: url('gui/orange.jpg'); background-size: cover; padding: 10px; border-radius: 8px;"></div>
-        </div>
-    </div>
+            <!-- Host Settings Panel -->
+            <div id="host-controls" class="hidden" style="background:rgba(0,0,0,0.3); padding:10px; border-radius:4px; margin-bottom:15px; border:1px solid var(--panel-border);">
+                <h3 style="margin:0 0 10px 0; font-size:1rem; color:var(--accent-gold);">Host Game Configuration</h3>
+                <div class="grid-2">
+                    <div>
+                        <label style="font-size:0.85rem;">Werewolves:</label>
+                        <input type="number" id="setting-wolves" value="1" min="1" max="4">
+                    </div>
+                    <div>
+                        <label style="font-size:0.85rem;">Seers:</label>
+                        <input type="number" id="setting-seers" value="1" min="0" max="3">
+                    </div>
+                    <div>
+                        <label style="font-size:0.85rem;">Witches:</label>
+                        <input type="number" id="setting-witches" value="1" min="0" max="2">
+                    </div>
+                    <div>
+                        <label style="font-size:0.85rem;">Hunters:</label>
+                        <input type="number" id="setting-hunters" value="1" min="0" max="2">
+                    </div>
+                </div>
+                <button class="action-btn" style="margin-top:5px; background:#2e6b2e;" onclick="startP2PGame()">Start Salem Trial</button>
+            </div>
 
-    <div id="rulesModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeModal('rulesModal')">&times;</span>
-            <h2 style="font-family:'Cinzel',serif; color:#f3df88;">Game Rules & Lore</h2>
-            <p><strong>Overview:</strong> Werewolves hide amongst the villagers, killing one by one each night. The village must deduce who the monsters are during the day and vote to execute them.</p>
+            <div id="client-waiting-msg" style="text-align:center; font-style:italic; margin-bottom:15px; color:var(--accent-gold);">Waiting for the host to commence the trial...</div>
+            <button id="back-btn" class="action-btn hidden" style="background:#422;" onclick="resetToTitle()">Leave Room</button>
         </div>
-    </div>
 
-    <div id="rolesModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="closeModal('rolesModal')">&times;</span>
-            <h2 style="font-family:'Cinzel',serif; color:#f3df88;">Roles Guide</h2>
-            <p>🐺 <strong>Werewolf:</strong> Devours a villager each night.</p>
-            <p>🔮 <strong>Seer:</strong> Inspects one player per night.</p>
-            <p>🧪 <strong>Witch:</strong> Possesses potions.</p>
-            <p>📯 <strong>Hunter:</strong> Takes someone down if eliminated.</p>
-        </div>
-    </div>
+        <!-- GAME SCREEN (HIDDEN UNTIL STARTED) -->
+        <div id="game-screen-container">
+            <div id="game-screen-grid" class="panel hidden">
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--panel-border); padding-bottom:10px; margin-bottom:15px;">
+                    <div>
+                        <span id="phase-label" style="font-family:'Cinzel'; font-weight:900; color:var(--accent-gold); font-size:1.3rem;">NIGHT</span>
+                        <div style="font-size:0.85rem; color:#d1b38e;">Your Assigned Role: <b id="my-role-display" style="text-transform:uppercase; color:#fff;">---</b></div>
+                    </div>
+                    <div id="timer-display" style="font-family:'Cinzel'; font-size:1.1rem; color:var(--accent-gold); background:#150602; padding:6px 12px; border-radius:4px; border:1px solid var(--panel-border);">Time Left: 30s</div>
+                </div>
 
-    <div id="ranksModal" class="modal">
-        <div class="modal-content" style="text-align: center;">
-            <span class="close-modal" onclick="closeModal('ranksModal')">&times;</span>
-            <h2 style="font-family:'Cinzel',serif; color:#f3df88;">Player Rank & XP</h2>
-            <div style="background-image: url('gui/orange.jpg'); background-size: cover; border: 2px solid #b34211; border-radius: 12px; padding: 15px; margin: 15px 0;">
-                <p style="font-size: 16px; margin: 5px 0; color:#f3df88;">Current Level: <b id="modal-level-display">1</b></p>
-                <p style="font-size: 13px; margin: 5px 0 10px 0; color:#fceee9;">XP: <span id="modal-xp-display">0</span> / <span id="modal-next-xp-display">500</span></p>
-                <div style="background: #3d1a0b; border-radius: 8px; height: 14px; width: 100%; overflow: hidden; border: 1px solid #b34211;">
-                    <div id="xp-progress-bar" style="background-image: url('gui/yellow.jpg'); background-size: cover; width: 0%; height: 100%;"></div>
+                <div style="background:#150602; border:2px solid var(--panel-border); padding:10px; border-radius:4px; margin-bottom:15px; text-align:center;">
+                    <div style="font-size:0.85rem; color:#d1b38e; text-transform:uppercase; letter-spacing:1px;">Town Chronicle & Narrative</div>
+                    <div id="game-narrative" style="font-size:1rem; font-weight:700; color:var(--accent-gold); margin-top:4px;">Waiting for game to begin...</div>
+                </div>
+
+                <div class="grid-2">
+                    <div>
+                        <h3 id="death-header-title" style="font-size:1rem; color:var(--accent-gold); margin-top:0;">Night Actions / Votes</h3>
+                        <div id="target-list" style="background:#150602; border:2px solid var(--panel-border); border-radius:4px; padding:10px; max-height:220px; overflow-y:auto;">
+                            <!-- Dynamic target buttons rendered here -->
+                        </div>
+                    </div>
+                    <div>
+                        <h3 style="font-size:1rem; color:var(--accent-gold); margin-top:0;">Colony Discussion</h3>
+                        <div id="game-chat-messages" class="chat-box"></div>
+                        <div style="display:flex; gap:5px;">
+                            <input type="text" id="game-chat-input" placeholder="Whisper or speak..." style="margin-bottom:0;" onkeydown="if(event.key==='Enter') sendChat()">
+                            <button class="action-btn" style="width:80px; margin-bottom:0;" onclick="sendChat()">Send</button>
+                        </div>
+                        <div style="margin-top:10px; font-size:0.8rem; color:#d1b38e; display:flex; justify-content:space-between;">
+                            <span>Active Ability: <b id="ability-status-box" style="color:#fff;">none</b></span>
+                        </div>
+                        <div id="votes-display-box" style="margin-top:8px; font-size:0.8rem; color:#ffe680;"></div>
+                    </div>
                 </div>
             </div>
-            <p style="font-size: 11px; color: #fceee9;">Earn XP by participating in matches, casting votes, and executing night abilities!</p>
+        </div>
+
+    </div>
+
+    <!-- COLLECTION MODAL -->
+    <div id="collectionModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('collectionModal')">&times;</span>
+            <h2 style="font-family:'Cinzel'; color:var(--accent-gold); margin-top:0;">Icon Collection Vault</h2>
+            <p style="font-size:0.9rem;">Unlock icons by opening supply packs using Win Coins (Earn 1 coin per game victory).</p>
+            <div style="background:#150602; border:2px solid var(--panel-border); padding:10px; border-radius:4px; text-align:center; margin-bottom:15px;">
+                Win Coins Available: <b id="player-coins-display" style="color:var(--accent-gold);">0</b> 🪙
+                <button class="action-btn" style="margin-top:10px; padding:8px;" onclick="openSupplyPack()">Open Supply Pack (Cost: 1 🪙)</button>
+                <div id="pack-result-text" style="font-size:0.85rem; margin-top:8px; font-weight:700;"></div>
+                <div id="pack-reveal-box" style="margin-top:5px;"></div>
+            </div>
+            <div style="font-size:0.85rem; margin-bottom:8px;">Discovered Icons: <span id="total-icons-count" style="color:var(--accent-gold);">0</span> / 100</div>
+            <div id="icon-collection-grid" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; max-height:220px; overflow-y:auto; background:#150602; padding:8px; border:2px solid var(--panel-border); border-radius:4px;">
+                <!-- Dynamically populated icon inventory -->
+            </div>
+        </div>
+    </div>
+
+    <!-- RANKS & XP MODAL -->
+    <div id="ranksModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal('ranksModal')">&times;</span>
+            <h2 style="font-family:'Cinzel'; color:var(--accent-gold); margin-top:0;">Resident Standing & XP</h2>
+            <div style="background:#150602; border:2px solid var(--panel-border); padding:15px; border-radius:4px; text-align:center;">
+                <div style="font-size:1.1rem; margin-bottom:5px;">Current Standing Level: <b id="modal-level-display" style="color:var(--accent-gold);">1</b></div>
+                <div style="font-size:0.9rem; margin-bottom:10px;">XP Progress: <span id="modal-xp-display">0</span> / <span id="modal-next-xp-display">500</span></div>
+                <div style="background:#2d1207; border:1px solid var(--panel-border); height:14px; border-radius:7px; overflow:hidden; margin-bottom:15px;">
+                    <div id="xp-progress-bar" style="background:var(--accent-gold); width:0%; height:100%; transition:width 0.3s;"></div>
+                </div>
+                <div style="font-size:0.85rem; text-align:left; color:#d1b38e; line-height:1.4;">
+                    • Earn <b>250 XP</b> by casting daily votes.<br>
+                    • Earn <b>750 XP</b> by successfully executing night role actions.<br>
+                    • Secure a colony victory to claim a <b>Win Coin</b> for supply packs!
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // Randomized background slideshow using your exact folder files
+        // Randomized background slideshow using exact folder files
         const bgImages = [
             'background/Abigail_Williams_vs._Geo_Jabobs.jpg',
             'background/Salem_Village_-_-map_of_-_-Project_Gutenberg_eText_17845.jpg',
@@ -581,6 +433,23 @@
                 rarity: rarity
             };
         });
+
+        function getRarityColor(rarity) {
+            switch(rarity) {
+                case 'legendary': return '#ff8c00';
+                case 'rare': return '#9370db';
+                case 'uncommon': return '#3cb371';
+                default: return '#b34211';
+            }
+        }
+
+        // Safe image fallback generator if an asset file is missing
+        function getSafeIconImage(iconPath, rarity, name, size = 28) {
+            let color = getRarityColor(rarity);
+            let initial = name ? name.charAt(0).toUpperCase() : '?';
+            let svgFallback = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}'><rect width='${size}' height='${size}' fill='%231a0a05' stroke='${encodeURIComponent(color)}' stroke-width='2' rx='4'/><text x='50%' y='50%' dominant-baseline='central' text-anchor='middle' fill='%23ffffff' font-family='Cinzel, serif' font-weight='bold' font-size='${size * 0.45}'>${initial}</text></svg>`;
+            return `<img src="${iconPath}" style="width: ${size}px; height: ${size}px; display: block; margin: 0 auto; border-radius: 3px; border: 1px solid ${color};" onerror="this.onerror=null; this.src='${svgFallback}';">`;
+        }
 
         let peer = null;
         let conn = null;
@@ -659,15 +528,6 @@
             }
         }
 
-        function getRarityColor(rarity) {
-            switch(rarity) {
-                case 'legendary': return '#ff8c00';
-                case 'rare': return '#9370db';
-                case 'uncommon': return '#3cb371';
-                default: return '#b34211';
-            }
-        }
-
         function updateCollectionUI() {
             document.getElementById('player-coins-display').innerText = myStats.coins;
             document.getElementById('total-icons-count').innerText = ALL_ICONS.length;
@@ -685,14 +545,14 @@
             ALL_ICONS.forEach(icon => {
                 let isUnlocked = myStats.unlockedIcons.includes(icon.path);
                 let isEquipped = myStats.equippedIcon === icon.path;
-                let borderColor = isEquipped ? '#f3df88' : getRarityColor(icon.rarity);
+                let borderColor = isEquipped ? '#ffe680' : getRarityColor(icon.rarity);
 
                 let itemDiv = document.createElement('div');
-                itemDiv.style.cssText = `background: ${isUnlocked ? '#7a3b1e' : '#3d1a0b'}; border: 2px solid ${borderColor}; border-radius: 6px; padding: 6px; text-align: center; cursor: ${isUnlocked ? 'pointer' : 'default'}; opacity: ${isUnlocked ? '1' : '0.4'};`;
+                itemDiv.style.cssText = `background: ${isUnlocked ? '#7a3b1e' : '#2d1207'}; border: 2px solid ${borderColor}; border-radius: 6px; padding: 6px; text-align: center; cursor: ${isUnlocked ? 'pointer' : 'default'}; opacity: ${isUnlocked ? '1' : '0.4'};`;
                 
                 itemDiv.innerHTML = `
-                    <img src="${icon.path}" style="width: 28px; height: 28px; display: block; margin: 0 auto 2px auto; border-radius: 3px;" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'28\' height=\'28\'><rect width=\'28\' height=\'28\' fill=\'%23555\'/><text x=\'50%\' y=\'50%\' dominant-baseline=\'central\' text-anchor=\'middle\' fill=\'white\' font-size=\'10\'>?</text></svg>'">
-                    <div style="font-size: 8px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${icon.name}</div>
+                    ${getSafeIconImage(icon.path, icon.rarity, icon.name, 28)}
+                    <div style="font-size: 9px; font-weight: 900; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 1px 1px 2px #000; margin-top: 2px;">${icon.name}</div>
                 `;
 
                 if (isUnlocked) {
@@ -707,7 +567,7 @@
                             conn.send({ type: 'UPDATE_STATS', name: myName, stats: myStats });
                         }
                     };
-                    if (isEquipped) itemDiv.style.boxShadow = '0 0 8px #f3df88';
+                    if (isEquipped) itemDiv.style.boxShadow = '0 0 8px #ffe680';
                 }
                 grid.appendChild(itemDiv);
             });
@@ -736,7 +596,7 @@
             let wonIcon = rollPackIcon();
             let isNew = !myStats.unlockedIcons.includes(wonIcon.path);
 
-            document.getElementById('pack-reveal-box').innerHTML = `<img src="${wonIcon.path}" style="width: 48px; height: 48px; border-radius: 6px; border: 2px solid ${getRarityColor(wonIcon.rarity)};">`;
+            document.getElementById('pack-reveal-box').innerHTML = getSafeIconImage(wonIcon.path, wonIcon.rarity, wonIcon.name, 48);
             
             if (isNew) {
                 myStats.unlockedIcons.push(wonIcon.path);
@@ -748,15 +608,6 @@
 
             localStorage.setItem('ww_stats', JSON.stringify(myStats));
             updateCollectionUI();
-        }
-
-        function toggleDropdown(id, event) {
-            event.stopPropagation();
-            var el = document.getElementById(id);
-            var isOpen = el.classList.contains('show');
-            var dropdowns = document.getElementsByClassName("dropdown-content");
-            for (var i = 0; i < dropdowns.length; i++) dropdowns[i].classList.remove('show');
-            if (!isOpen) el.classList.add('show');
         }
 
         function selectMode(mode) {
@@ -913,7 +764,10 @@
             let chatHtml = '';
             gameState.chatLog.forEach(msg => {
                 let icon = msg.iconPath || defaultStats.equippedIcon;
-                chatHtml += `<div class="chat-msg"><img src="${icon}" class="profile-icon"><span>${msg.sender}:</span> ${escapeHtml(msg.text)}</div>`;
+                let foundIconObj = ALL_ICONS.find(i => i.path === icon);
+                let rarity = foundIconObj ? foundIconObj.rarity : 'common';
+                let iconHtml = getSafeIconImage(icon, rarity, msg.sender, 16);
+                chatHtml += `<div class="chat-msg"><span style="vertical-align:middle; display:inline-block; margin-right:4px;">${iconHtml}</span><span>${msg.sender}:</span> ${escapeHtml(msg.text)}</div>`;
             });
             let gameChat = document.getElementById('game-chat-messages');
             if (gameChat) { gameChat.innerHTML = chatHtml; gameChat.scrollTop = gameChat.scrollHeight; }
@@ -1125,11 +979,16 @@
                 gameState.players.forEach(p => {
                     const li = document.createElement('li');
                     let pStats = gameState.playerStats[p] || { equippedIcon: defaultStats.equippedIcon };
-                    li.innerHTML = `<img src="${pStats.equippedIcon || defaultStats.equippedIcon}" class="profile-icon"> ${p} ${p === gameState.host ? '<small style="color:#f3df88">Host</small>' : ''}`;
+                    let iconPath = pStats.equippedIcon || defaultStats.equippedIcon;
+                    let foundObj = ALL_ICONS.find(i => i.path === iconPath);
+                    let rarity = foundObj ? foundObj.rarity : 'common';
+                    let iconHtml = getSafeIconImage(iconPath, rarity, p, 16);
+                    li.innerHTML = `<span style="vertical-align:middle; display:inline-block; margin-right:4px;">${iconHtml}</span> ${p} ${p === gameState.host ? '<small style="color:#ffe680; font-weight:900;">Host</small>' : ''}`;
                     listEl.appendChild(li);
                 });
             } else {
-                document.getElementById('title-screen-container').classList.add('hidden');
+                document.getElementById('auth-form-section').classList.add('hidden');
+                document.getElementById('lobby-active-section').classList.add('hidden');
                 document.getElementById('game-screen-grid').classList.remove('hidden');
 
                 const myRole = gameState.roles[myName] || 'villager';
@@ -1182,13 +1041,13 @@
                 for (let [target, count] of Object.entries(voteCounts)) {
                     voteHtml += `<div>${target}: ${count} votes</div>`;
                 }
-                votesBox.innerHTML = voteHtml || '<div style="color:#3d3b12;">No votes cast yet</div>';
+                votesBox.innerHTML = voteHtml || '<div style="color:#ffe680;">No votes cast yet</div>';
 
                 const targetList = document.getElementById('target-list');
                 targetList.innerHTML = '';
 
                 if (!isAlive && gameState.phase !== 'hunter_revenge') {
-                    targetList.innerHTML = '<div style="text-align:center; font-size:12px;">You are dead. Watch as a ghost.</div>';
+                    targetList.innerHTML = '<div style="text-align:center; font-size:13px; font-weight:900;">You are dead. Watch as a ghost.</div>';
                     renderChatLogs();
                     return;
                 }
@@ -1219,9 +1078,10 @@
                     } else if (myRole === 'Seer') {
                         if (gameState.seerResults[myName]) {
                             let res = document.createElement('div');
-                            res.style.color = '#3d3b12';
-                            res.style.fontWeight = 'bold';
+                            res.style.color = '#ffe680';
+                            res.style.fontWeight = '900';
                             res.style.marginBottom = '5px';
+                            res.style.textShadow = '1px 1px 2px #000';
                             res.innerText = gameState.seerResults[myName];
                             targetList.appendChild(res);
                         }
@@ -1273,7 +1133,7 @@
                             });
                         }
                     } else {
-                        targetList.innerHTML = '<div style="text-align:center; font-size:12px;">Sleeping soundly...</div>';
+                        targetList.innerHTML = '<div style="text-align:center; font-size:13px; font-weight:900;">Sleeping soundly...</div>';
                     }
                 } else if (gameState.phase === 'voting') {
                     document.getElementById('death-header-title').innerText = 'CAST YOUR VOTE';
@@ -1283,14 +1143,14 @@
                             btn.className = 'action-btn';
                             let isMyVote = gameState.votes[myName] === p;
                             btn.innerText = isMyVote ? `✓ Voted for ${p}` : `Vote ${p}`;
-                            if (isMyVote) btn.style.background = '#5cb85c';
+                            if (isMyVote) btn.style.background = '#2e6b2e';
                             btn.onclick = () => sendAction('vote', p);
                             targetList.appendChild(btn);
                         }
                     });
                 } else {
                     document.getElementById('death-header-title').innerText = 'DAY DISCUSSION';
-                    targetList.innerHTML = '<div style="text-align:center; font-size:12px;">Talk with other players and prepare to vote!</div>';
+                    targetList.innerHTML = '<div style="text-align:center; font-size:13px; font-weight:900;">Talk with other players and prepare to vote!</div>';
                 }
                 renderChatLogs();
             }
