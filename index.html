@@ -154,7 +154,6 @@
             padding-bottom: 3px;
         }
 
-        /* Sky Day/Night Animation Overlay */
         #sky-overlay {
             position: fixed;
             top: 20px;
@@ -174,6 +173,36 @@
 
         .animate-sun-moon {
             animation: sunMoonAnim 1.5s ease-in-out forwards;
+        }
+
+        /* Among Us-style Fullscreen Popup Overlays */
+        #cinematic-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(10, 3, 1, 0.92);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+            animation: fadeInCinematic 0.4s ease-out;
+        }
+
+        @keyframes fadeInCinematic {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .cinematic-card {
+            background: var(--panel-bg);
+            border: 4px solid var(--accent-gold);
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 15px 50px rgba(0,0,0,0.9);
         }
 
         /* Modal Styles */
@@ -212,6 +241,15 @@
     <div id="bg-slideshow"></div>
     <div class="overlay-vignette"></div>
     <div id="sky-overlay">🌙</div>
+
+    <!-- AMONG US STYLE CINEMATIC POPUP SCREEN -->
+    <div id="cinematic-overlay">
+        <div class="cinematic-card">
+            <h2 id="cinematic-title" style="font-family:'Cinzel'; color:var(--accent-gold); font-size:2rem; margin-top:0;">DAWN REPORT</h2>
+            <div id="cinematic-body" style="margin: 20px 0; font-size: 1.1rem; line-height: 1.5;"></div>
+            <button class="action-btn" style="max-width: 200px; margin: 0 auto;" onclick="dismissCinematic()">Continue</button>
+        </div>
+    </div>
 
     <header>
         <h1>WOLVES OF THE NEW WORLD</h1>
@@ -266,6 +304,10 @@
                         <input type="number" id="setting-seers" value="1" min="0" max="3">
                     </div>
                     <div>
+                        <label style="font-size:0.85rem;">Doctors:</label>
+                        <input type="number" id="setting-doctors" value="1" min="0" max="3">
+                    </div>
+                    <div>
                         <label style="font-size:0.85rem;">Witches:</label>
                         <input type="number" id="setting-witches" value="1" min="0" max="2">
                     </div>
@@ -274,14 +316,18 @@
                         <input type="number" id="setting-hunters" value="1" min="0" max="2">
                     </div>
                 </div>
-                <button class="action-btn" style="margin-top:5px; background:#2e6b2e;" onclick="startP2PGame()">Start Salem Trial</button>
+                <div style="margin-top: 5px; font-size:0.9rem; display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="setting-reveal-roles" checked style="width:20px; margin:0; cursor:pointer;">
+                    <label for="setting-reveal-roles" style="cursor:pointer; color:var(--accent-gold);">Reveal Roles Upon Death</label>
+                </div>
+                <button class="action-btn" style="margin-top:12px; background:#2e6b2e;" onclick="startP2PGame()">Start Salem Trial</button>
             </div>
 
             <div id="client-waiting-msg" style="text-align:center; font-style:italic; margin-bottom:15px; color:var(--accent-gold);">Waiting for the host to commence the trial...</div>
             <button id="back-btn" class="action-btn hidden" style="background:#422;" onclick="resetToTitle()">Leave Room</button>
         </div>
 
-        <!-- GAME SCREEN (HIDDEN UNTIL STARTED) -->
+        <!-- GAME SCREEN -->
         <div id="game-screen-container">
             <div id="game-screen-grid" class="panel hidden">
                 <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid var(--panel-border); padding-bottom:10px; margin-bottom:15px;">
@@ -300,9 +346,7 @@
                 <div class="grid-2">
                     <div>
                         <h3 id="death-header-title" style="font-size:1rem; color:var(--accent-gold); margin-top:0;">Night Actions / Votes</h3>
-                        <div id="target-list" style="background:#150602; border:2px solid var(--panel-border); border-radius:4px; padding:10px; max-height:220px; overflow-y:auto;">
-                            <!-- Dynamic target buttons rendered here -->
-                        </div>
+                        <div id="target-list" style="background:#150602; border:2px solid var(--panel-border); border-radius:4px; padding:10px; max-height:220px; overflow-y:auto;"></div>
                     </div>
                     <div>
                         <h3 style="font-size:1rem; color:var(--accent-gold); margin-top:0;">Colony Discussion</h3>
@@ -335,9 +379,7 @@
                 <div id="pack-reveal-box" style="margin-top:5px;"></div>
             </div>
             <div style="font-size:0.85rem; margin-bottom:8px;">Discovered Icons: <span id="total-icons-count" style="color:var(--accent-gold);">0</span> / 100</div>
-            <div id="icon-collection-grid" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; max-height:220px; overflow-y:auto; background:#150602; padding:8px; border:2px solid var(--panel-border); border-radius:4px;">
-                <!-- Dynamically populated icon inventory -->
-            </div>
+            <div id="icon-collection-grid" style="display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; max-height:220px; overflow-y:auto; background:#150602; padding:8px; border:2px solid var(--panel-border); border-radius:4px;"></div>
         </div>
     </div>
 
@@ -362,7 +404,6 @@
     </div>
 
     <script>
-        // Randomized background slideshow using exact folder files
         const bgImages = [
             'background/Abigail_Williams_vs._Geo_Jabobs.jpg',
             'background/Salem_Village_-_-map_of_-_-Project_Gutenberg_eText_17845.jpg',
@@ -443,7 +484,6 @@
             }
         }
 
-        // Safe image fallback generator if an asset file is missing
         function getSafeIconImage(iconPath, rarity, name, size = 28) {
             let color = getRarityColor(rarity);
             let initial = name ? name.charAt(0).toUpperCase() : '?';
@@ -484,14 +524,16 @@
             started: false,
             phase: 'night',
             timeLeft: 30,
-            settings: { wolves: 1, seers: 1, witches: 1, hunters: 1, nightTime: 30, dayTime: 45 },
+            settings: { wolves: 1, seers: 1, doctors: 1, witches: 1, hunters: 1, nightTime: 30, dayTime: 45, revealRoles: true },
             roles: {},
             alive: {},
-            nightActions: { kill: null, save: null, poison: null },
+            nightActions: { kill: null, save: null, poison: null, inspect: null },
+            deathCauses: {},
             witchPotions: {},
             pendingHunter: null,
             votes: {},
             seerResults: {},
+            doctorResults: {},
             winner: null,
             narrative: 'Waiting for game to begin...',
             chatLog: []
@@ -500,15 +542,6 @@
         window.onload = function() {
             const savedName = localStorage.getItem('ww_name');
             if (savedName) document.getElementById('player-name').value = savedName;
-            
-            window.onclick = function(event) {
-                if (!event.target.matches('.dropbtn')) {
-                    var dropdowns = document.getElementsByClassName("dropdown-content");
-                    for (var i = 0; i < dropdowns.length; i++) {
-                        dropdowns[i].classList.remove('show');
-                    }
-                }
-            }
         };
 
         function addXP(amount) {
@@ -634,6 +667,16 @@
             overlay.classList.add('animate-sun-moon');
         }
 
+        function showCinematic(title, htmlContent) {
+            document.getElementById('cinematic-title').innerText = title;
+            document.getElementById('cinematic-body').innerHTML = htmlContent;
+            document.getElementById('cinematic-overlay').style.display = 'flex';
+        }
+
+        function dismissCinematic() {
+            document.getElementById('cinematic-overlay').style.display = 'none';
+        }
+
         function setupGameSession() {
             myName = document.getElementById('player-name').value.trim();
             roomCode = document.getElementById('room-password').value.trim().toLowerCase();
@@ -708,6 +751,9 @@
                 conn.on('data', (data) => {
                     if (data.type === 'STATE') {
                         gameState = data.state;
+                        if (data.cinematic) {
+                            showCinematic(data.cinematic.title, data.cinematic.html);
+                        }
                         renderUI();
                     } else if (data.type === 'CHAT') {
                         appendChat(data.sender, data.text, false);
@@ -725,10 +771,13 @@
             renderChatLogs();
         }
 
-        function broadcastState() {
+        function broadcastState(cinematicData = null) {
             if (!isHost) return;
-            const payload = { type: 'STATE', state: gameState };
+            const payload = { type: 'STATE', state: gameState, cinematic: cinematicData };
             connections.forEach(c => { if (c && c.open) c.send(payload); });
+            if (cinematicData) {
+                showCinematic(cinematicData.title, cinematicData.html);
+            }
             renderUI();
         }
 
@@ -780,13 +829,15 @@
         function startP2PGame() {
             if (!isHost) return;
             const w = parseInt(document.getElementById('setting-wolves').value);
-            const s = parseInt(document.getElementById('setting-seers').value);
+            const se = parseInt(document.getElementById('setting-seers').value);
+            const d = parseInt(document.getElementById('setting-doctors').value);
             const wt = parseInt(document.getElementById('setting-witches').value);
             const h = parseInt(document.getElementById('setting-hunters').value);
+            const revealRoles = document.getElementById('setting-reveal-roles').checked;
 
-            if (w + s + wt + h >= gameState.players.length) { alert('Too many roles selected for player count!'); return; }
+            if (w + se + d + wt + h >= gameState.players.length) { alert('Too many roles selected for player count!'); return; }
 
-            gameState.settings = { wolves: w, seers: s, witches: wt, hunters: h, nightTime: 30, dayTime: 45 };
+            gameState.settings = { wolves: w, seers: se, doctors: d, witches: wt, hunters: h, nightTime: 30, dayTime: 45, revealRoles: revealRoles };
             gameState.started = true;
             gameState.phase = 'night';
             gameState.timeLeft = 30;
@@ -798,12 +849,14 @@
             gameState.roles = {};
             gameState.alive = {};
             gameState.witchPotions = {};
+            gameState.deathCauses = {};
             let idx = 0;
 
             gameState.players.forEach(p => gameState.alive[p] = true);
 
             for (let i = 0; i < w; i++) gameState.roles[shuffled[idx++]] = 'Werewolf';
-            for (let i = 0; i < s; i++) gameState.roles[shuffled[idx++]] = 'Seer';
+            for (let i = 0; i < se; i++) gameState.roles[shuffled[idx++]] = 'Seer';
+            for (let i = 0; i < d; i++) gameState.roles[shuffled[idx++]] = 'Doctor';
             for (let i = 0; i < wt; i++) {
                 let witchName = shuffled[idx++];
                 gameState.roles[witchName] = 'Witch';
@@ -837,6 +890,28 @@
             if (gameState.phase === 'night') {
                 resolveNight();
                 if (checkWinCondition()) return;
+                
+                let deaths = Object.keys(gameState.deathCauses);
+                let html = '';
+                if (deaths.length > 0) {
+                    html += `<div style="margin-bottom:15px; font-weight:700; color:#ff8c00;">Tragedy struck the colony overnight:</div>`;
+                    deaths.forEach(deadPlayer => {
+                        let cause = gameState.deathCauses[deadPlayer];
+                        let pStats = gameState.playerStats[deadPlayer] || { equippedIcon: defaultStats.equippedIcon };
+                        let iconHtml = getSafeIconImage(pStats.equippedIcon || defaultStats.equippedIcon, 'common', deadPlayer, 36);
+                        let roleTag = gameState.settings.revealRoles ? ` <span style="color:var(--accent-gold); font-size:0.9rem;">(${gameState.roles[deadPlayer]})</span>` : '';
+                        
+                        html += `<div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:10px; background:#150602; padding:8px; border-radius:6px; border:1px solid var(--panel-border);">
+                            ${iconHtml}
+                            <div style="text-align:left;"><b>${deadPlayer}</b>${roleTag}<br><span style="font-size:0.8rem; color:#d1b38e; font-style:italic;">Cause: ${cause}</span></div>
+                        </div>`;
+                    });
+                } else {
+                    html += `<div style="font-size:1.1rem; font-style:italic; color:var(--accent-gold); margin:20px 0;">The night was dead quiet. No one perished.</div>`;
+                }
+
+                let cinematic = { title: "DAWN BREAKS", html: html };
+
                 if (gameState.pendingHunter) {
                     gameState.phase = 'hunter_revenge';
                 } else {
@@ -844,13 +919,30 @@
                     gameState.timeLeft = gameState.settings.dayTime;
                     gameState.narrative = 'Day has broken. Discuss who among you is suspicious!';
                 }
+                broadcastState(cinematic);
+
             } else if (gameState.phase === 'day') {
                 gameState.phase = 'voting';
                 gameState.timeLeft = 20;
                 gameState.narrative = 'Voting time! Cast your votes on who to execute.';
+                broadcastState();
             } else if (gameState.phase === 'voting') {
-                resolveVotes();
+                let executed = resolveVotes();
                 if (checkWinCondition()) return;
+
+                let cinematic = null;
+                if (executed) {
+                    let pStats = gameState.playerStats[executed] || { equippedIcon: defaultStats.equippedIcon };
+                    let iconHtml = getSafeIconImage(pStats.equippedIcon || defaultStats.equippedIcon, 'common', executed, 42);
+                    let roleTag = gameState.settings.revealRoles ? ` Their true role was <b style="color:var(--accent-gold);">${gameState.roles[executed]}</b>.` : '';
+                    
+                    let html = `<div style="display:flex; align-items:center; justify-content:center; gap:15px; margin:15px 0; background:#150602; padding:12px; border-radius:6px; border:1px solid var(--panel-border);">
+                        ${iconHtml}
+                        <div style="text-align:left;"><b style="font-size:1.2rem; color:var(--accent-gold);">${executed}</b> was sentenced to the gallows.${roleTag}</div>
+                    </div>`;
+                    cinematic = { title: "TRIAL VERDICT", html: html };
+                }
+
                 if (gameState.pendingHunter) {
                     gameState.phase = 'hunter_revenge';
                 } else {
@@ -858,6 +950,7 @@
                     gameState.timeLeft = gameState.settings.nightTime;
                     gameState.narrative = 'Night falls once more. Special roles take action.';
                 }
+                broadcastState(cinematic);
             }
         }
 
@@ -868,7 +961,12 @@
             if (action === 'wolf_kill' && role === 'Werewolf') {
                 gameState.nightActions.kill = target;
             } else if (action === 'seer_inspect' && role === 'Seer') {
-                gameState.seerResults[name] = `${target} is a ${gameState.roles[target]}`;
+                let targetRole = gameState.roles[target];
+                let alignment = (targetRole === 'Werewolf') ? 'Werewolf (Monster)' : 'Innocent / Townfolk';
+                gameState.seerResults[name] = `Vision on ${target}: They appear to be ${alignment}.`;
+            } else if (action === 'doctor_inspect' && role === 'Doctor') {
+                let cause = gameState.deathCauses[target] || "Alive / No recent wounds recorded.";
+                gameState.doctorResults[name] = `Forensic review on ${target}: ${cause}`;
             } else if (action === 'witch_save' && role === 'Witch' && gameState.witchPotions[name]?.save) {
                 gameState.nightActions.save = target;
                 gameState.witchPotions[name].save = false;
@@ -879,6 +977,7 @@
                 gameState.votes[name] = target;
             } else if (action === 'hunter_shot' && gameState.pendingHunter === name) {
                 gameState.alive[target] = false;
+                gameState.deathCauses[target] = "Hunter Revenge Shot";
                 gameState.narrative = `${name} (Hunter) shot and killed ${target}!`;
                 gameState.pendingHunter = null;
                 if (!checkWinCondition()) {
@@ -892,14 +991,14 @@
         function sendAction(action, target) {
             if (isHost) {
                 handleClientAction(myName, action, target);
-                if (action === 'wolf_kill' || action === 'witch_poison' || action === 'seer_inspect' || action === 'witch_save') {
+                if (['wolf_kill', 'seer_inspect', 'doctor_inspect', 'witch_save', 'witch_poison'].includes(action)) {
                     addXP(750);
                 } else if (action === 'vote') {
                     addXP(250);
                 }
             } else {
                 conn.send({ type: 'ACTION', name: myName, action: action, target: target });
-                if (action === 'wolf_kill' || action === 'witch_poison' || action === 'seer_inspect' || action === 'witch_save') {
+                if (['wolf_kill', 'seer_inspect', 'doctor_inspect', 'witch_save', 'witch_poison'].includes(action)) {
                     addXP(750);
                 } else if (action === 'vote') {
                     addXP(250);
@@ -912,25 +1011,27 @@
             let killedByWolf = gameState.nightActions.kill;
             let savedByWitch = gameState.nightActions.save;
             let poisonedByWitch = gameState.nightActions.poison;
-            let deaths = [];
+            
+            gameState.deathCauses = {};
 
             if (killedByWolf && killedByWolf !== savedByWitch && gameState.alive[killedByWolf]) {
                 gameState.alive[killedByWolf] = false;
-                deaths.push(killedByWolf);
+                gameState.deathCauses[killedByWolf] = "Visible Claw Marks (Wolf Kill)";
             }
             if (poisonedByWitch && gameState.alive[poisonedByWitch]) {
                 gameState.alive[poisonedByWitch] = false;
-                deaths.push(poisonedByWitch);
+                gameState.deathCauses[poisonedByWitch] = "A Bitter Metallic Trace (Witch Poison)";
             }
 
-            if (deaths.length > 0) {
-                gameState.narrative = `Victims last night: ${deaths.join(', ')}.`;
-                let deadHunter = deaths.find(p => gameState.roles[p] === 'Hunter');
+            let deathNames = Object.keys(gameState.deathCauses);
+            if (deathNames.length > 0) {
+                gameState.narrative = `Victims last night: ${deathNames.join(', ')}.`;
+                let deadHunter = deathNames.find(p => gameState.roles[p] === 'Hunter');
                 if (deadHunter) gameState.pendingHunter = deadHunter;
             } else {
                 gameState.narrative = 'The night was quiet. No one died.';
             }
-            gameState.nightActions = { kill: null, save: null, poison: null };
+            gameState.nightActions = { kill: null, save: null, poison: null, inspect: null };
             witchMenuState = null;
         }
 
@@ -944,12 +1045,16 @@
             if (sorted.length > 0 && counts[sorted[0]] >= 1) {
                 let executed = sorted[0];
                 gameState.alive[executed] = false;
+                gameState.deathCauses[executed] = "Sentenced by Village Vote";
                 gameState.narrative = `The village executed ${executed} (${gameState.roles[executed]}).`;
                 if (gameState.roles[executed] === 'Hunter') gameState.pendingHunter = executed;
+                gameState.votes = {};
+                return executed;
             } else {
                 gameState.narrative = 'The vote was inconclusive.';
+                gameState.votes = {};
+                return null;
             }
-            gameState.votes = {};
         }
 
         function checkWinCondition() {
@@ -1008,7 +1113,7 @@
                         hasCollectedWinReward = true;
                         let playerRole = gameState.roles[myName] || 'Villager';
                         let wonAsWolf = (gameState.winner.includes('Werewolves') && playerRole === 'Werewolf');
-                        let wonAsTown = (gameState.winner.includes('Villagers') && playerRole !== 'Villager');
+                        let wonAsTown = (gameState.winner.includes('Villagers') && playerRole !== 'Werewolf');
                         
                         if (wonAsWolf || wonAsTown) {
                             myStats.coins += 1;
@@ -1029,7 +1134,8 @@
 
                 let abilityBox = document.getElementById('ability-status-box');
                 if (myRole === 'Werewolf') abilityBox.innerText = 'Devour Target';
-                else if (myRole === 'Seer') abilityBox.innerText = 'Inspect Role';
+                else if (myRole === 'Seer') abilityBox.innerText = 'Inspect Alignment';
+                else if (myRole === 'Doctor') abilityBox.innerText = 'Examine Corpse';
                 else if (myRole === 'Witch') abilityBox.innerText = 'Save / Poison';
                 else if (myRole === 'Hunter') abilityBox.innerText = 'Revenge Shot';
                 else abilityBox.innerText = 'none';
@@ -1080,7 +1186,7 @@
                             let res = document.createElement('div');
                             res.style.color = '#ffe680';
                             res.style.fontWeight = '900';
-                            res.style.marginBottom = '5px';
+                            res.style.marginBottom = '8px';
                             res.style.textShadow = '1px 1px 2px #000';
                             res.innerText = gameState.seerResults[myName];
                             targetList.appendChild(res);
@@ -1089,8 +1195,29 @@
                             if (p !== myName && gameState.alive[p]) {
                                 let btn = document.createElement('button');
                                 btn.className = 'action-btn';
+                                btn.style.background = '#4a2511';
                                 btn.innerText = `Inspect ${p}`;
                                 btn.onclick = () => sendAction('seer_inspect', p);
+                                targetList.appendChild(btn);
+                            }
+                        });
+                    } else if (myRole === 'Doctor') {
+                        if (gameState.doctorResults[myName]) {
+                            let res = document.createElement('div');
+                            res.style.color = '#ffe680';
+                            res.style.fontWeight = '900';
+                            res.style.marginBottom = '5px';
+                            res.style.textShadow = '1px 1px 2px #000';
+                            res.innerText = gameState.doctorResults[myName];
+                            targetList.appendChild(res);
+                        }
+                        gameState.players.forEach(p => {
+                            if (!gameState.alive[p]) {
+                                let btn = document.createElement('button');
+                                btn.className = 'action-btn';
+                                btn.style.background = '#4a2511';
+                                btn.innerText = `Examine Corpse: ${p}`;
+                                btn.onclick = () => sendAction('doctor_inspect', p);
                                 targetList.appendChild(btn);
                             }
                         });
