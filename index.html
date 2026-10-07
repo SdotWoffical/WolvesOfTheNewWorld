@@ -679,608 +679,549 @@
 
         function setupGameSession() {
             myName = document.getElementById('player-name').value.trim();
-            roomCode = document.getElementById('room-password').value.trim().toLowerCase();
+            roomCode = document.getElementById('room-password').value.trim();
 
-            if (!myName || !roomCode) { alert('Enter name and room code!'); return; }
+            if (!myName) {
+                alert('Please enter your Colony Resident Name.');
+                return;
+            }
+            if (!roomCode) {
+                alert('Please enter a Meeting Room Code.');
+                return;
+            }
+
             localStorage.setItem('ww_name', myName);
-
-            document.getElementById('connection-status').innerText = 'Connecting...';
-            const hostPeerId = 'sdotw-ww-' + roomCode;
-
-            if (peer) { try { peer.destroy(); } catch(e) {} }
-            peer = new Peer(hostPeerId, { host: '0.peerjs.com', port: 443, secure: true });
-
-            let timeout = setTimeout(() => {
-                if (selectedActionType === 'join' && peer && !peer.destroyed) {
-                    peer.destroy();
-                    connectAsClient(hostPeerId);
-                }
-            }, 3000);
-
-            peer.on('open', () => {
-                clearTimeout(timeout);
-                isHost = true;
-                gameState.host = myName;
-                gameState.players = [myName];
-                gameState.playerStats[myName] = myStats;
-                document.getElementById('connection-status').innerText = 'Hosting Room Successfully!';
-                
-                peer.on('connection', (incomingConn) => {
-                    connections.push(incomingConn);
-                    incomingConn.on('data', (data) => {
-                        if (data.type === 'JOIN' && !gameState.started) {
-                            if (!gameState.players.includes(data.name)) {
-                                gameState.players.push(data.name);
-                                gameState.playerStats[data.name] = data.stats;
-                                broadcastState();
-                            }
-                        } else if (data.type === 'UPDATE_STATS') {
-                            gameState.playerStats[data.name] = data.stats;
-                            broadcastState();
-                        } else if (data.type === 'ACTION') {
-                            handleClientAction(data.name, data.action, data.target);
-                        } else if (data.type === 'CHAT') {
-                            appendChat(data.sender, data.text);
-                        }
-                    });
-                    incomingConn.on('open', () => broadcastState());
-                });
-                showLobbyUI();
-            });
-
-            peer.on('error', (err) => {
-                clearTimeout(timeout);
-                if (err.type === 'unavailable-id' || selectedActionType === 'join') {
-                    isHost = false;
-                    peer.destroy();
-                    connectAsClient(hostPeerId);
-                }
-            });
-        }
-
-        function connectAsClient(hostId) {
-            isHost = false;
-            peer = new Peer({ host: '0.peerjs.com', port: 443, secure: true });
-            peer.on('open', () => {
-                conn = peer.connect(hostId);
-                conn.on('open', () => {
-                    document.getElementById('connection-status').innerText = 'Connected to Host!';
-                    conn.send({ type: 'JOIN', name: myName, stats: myStats });
-                    showLobbyUI();
-                });
-                conn.on('data', (data) => {
-                    if (data.type === 'STATE') {
-                        gameState = data.state;
-                        if (data.cinematic) {
-                            showCinematic(data.cinematic.title, data.cinematic.html);
-                        }
-                        renderUI();
-                    } else if (data.type === 'CHAT') {
-                        appendChat(data.sender, data.text, false);
-                    }
-                });
-            });
-        }
-
-        function showLobbyUI() {
             document.getElementById('auth-form-section').classList.add('hidden');
             document.getElementById('lobby-active-section').classList.remove('hidden');
             document.getElementById('display-room-code').innerText = roomCode;
-            document.getElementById('back-btn').classList.remove('hidden');
-            if (isHost) document.getElementById('host-controls').classList.remove('hidden');
-            renderChatLogs();
-        }
 
-        function broadcastState(cinematicData = null) {
-            if (!isHost) return;
-            const payload = { type: 'STATE', state: gameState, cinematic: cinematicData };
-            connections.forEach(c => { if (c && c.open) c.send(payload); });
-            if (cinematicData) {
-                showCinematic(cinematicData.title, cinematicData.html);
-            }
-            renderUI();
-        }
+            let peerId = 'salem_' + roomCode.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-        function sendChat() {
-            let inputEl = document.getElementById('game-chat-input');
-            let text = inputEl.value.trim();
-            if (!text) return;
-            inputEl.value = '';
+            if (selectedActionType === 'host') {
+                isHost = true;
+                document.getElementById('host-controls').classList.remove('hidden');
+                document.getElementById('client-waiting-msg').classList.add('hidden');
+                document.getElementById('back-btn').classList.remove('hidden');
 
-            if (isHost) {
-                appendChat(myName, text);
+                peer = new Peer(peerId);
+                peer.on('open', (id) => {
+                    document.getElementById('connection-status').innerText = 'Hosting room successfully. Waiting for residents...';
+                    gameState.host = myName;
+                    gameState.players = [myName];
+                    gameState.alive[myName] = true;
+                    gameState.playerStats[myName] = myStats;
+                    updateLobbyUI();
+                });
+
+                peer.on('error', (err) => {
+                    if (err.type === 'unavailable-id') {
+                        alert('Room Code already hosted! Try joining instead or use a different code.');
+                        resetToTitle();
+                    } else {
+                        document.getElementById('connection-status').innerText = 'Peer Error: ' + err.type;
+                    }
+                });
+
+                peer.on('connection', (incomingConn) => {
+                    connections.push(incomingConn);
+                    setupConnectionEvents(incomingConn);
+                });
+
             } else {
-                conn.send({ type: 'CHAT', sender: myName, text: text });
-                appendChat(myName, text, false);
+                isHost = false;
+                document.getElementById('host-controls').classList.add('hidden');
+                document.getElementById('client-waiting-msg').classList.remove('hidden');
+                document.getElementById('back-btn').classList.remove('hidden');
+
+                peer = new Peer();
+                peer.on('open', (id) => {
+                    document.getElementById('connection-status').innerText = 'Connecting to host chamber...';
+                    conn = peer.connect(peerId);
+                    setupConnectionEvents(conn);
+                });
+
+                peer.on('error', (err) => {
+                    document.getElementById('connection-status').innerText = 'Connection failed: Room might not exist.';
+                });
             }
         }
 
-        function appendChat(sender, text, broadcastToOthers = true) {
-            let senderStats = gameState.playerStats[sender] || (sender === myName ? myStats : { level: 1, equippedIcon: defaultStats.equippedIcon });
-            let iconPath = senderStats.equippedIcon || defaultStats.equippedIcon;
-            
-            gameState.chatLog.push({ sender: sender, iconPath: iconPath, text: text });
-            if (gameState.chatLog.length > 50) gameState.chatLog.shift();
-
-            if (isHost && broadcastToOthers) {
-                const payload = { type: 'CHAT', sender: sender, text: text };
-                connections.forEach(c => { if (c && c.open) c.send(payload); });
-            }
-            renderChatLogs();
-        }
-
-        function renderChatLogs() {
-            let chatHtml = '';
-            gameState.chatLog.forEach(msg => {
-                let icon = msg.iconPath || defaultStats.equippedIcon;
-                let foundIconObj = ALL_ICONS.find(i => i.path === icon);
-                let rarity = foundIconObj ? foundIconObj.rarity : 'common';
-                let iconHtml = getSafeIconImage(icon, rarity, msg.sender, 16);
-                chatHtml += `<div class="chat-msg"><span style="vertical-align:middle; display:inline-block; margin-right:4px;">${iconHtml}</span><span>${msg.sender}:</span> ${escapeHtml(msg.text)}</div>`;
+        function setupConnectionEvents(c) {
+            c.on('open', () => {
+                document.getElementById('connection-status').innerText = 'Connected to Colony Chamber!';
+                if (!isHost) {
+                    c.send({ type: 'JOIN', name: myName, stats: myStats });
+                }
             });
-            let gameChat = document.getElementById('game-chat-messages');
-            if (gameChat) { gameChat.innerHTML = chatHtml; gameChat.scrollTop = gameChat.scrollHeight; }
+
+            c.on('data', (data) => {
+                if (isHost) {
+                    handleHostData(data, c);
+                } else {
+                    handleClientData(data);
+                }
+            });
+
+            c.on('close', () => {
+                if (!isHost) {
+                    alert('Lost connection to the host.');
+                    resetToTitle();
+                }
+            });
         }
 
-        function escapeHtml(text) {
-            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+        function handleHostData(data, c) {
+            if (data.type === 'JOIN') {
+                if (!gameState.players.includes(data.name)) {
+                    gameState.players.push(data.name);
+                    gameState.alive[data.name] = true;
+                    if (data.stats) gameState.playerStats[data.name] = data.stats;
+                    broadcastState();
+                }
+            } else if (data.type === 'ACTION') {
+                if (data.action === 'kill') gameState.nightActions.kill = data.target;
+                if (data.action === 'save') gameState.nightActions.save = data.target;
+                if (data.action === 'poison') gameState.nightActions.poison = data.target;
+                if (data.action === 'inspect') {
+                    gameState.nightActions.inspect = data.target;
+                    let targetRole = gameState.roles[data.target] || 'villager';
+                    let isWolf = targetRole === 'werewolf';
+                    c.send({ type: 'SEER_RESULT', target: data.target, isWolf: isWolf });
+                }
+            } else if (data.type === 'VOTE') {
+                gameState.votes[data.voter] = data.target;
+                checkVoteConsensus();
+            } else if (data.type === 'CHAT') {
+                // Check if sender is dead - if dead, block chat
+                if (gameState.alive[data.sender] === false) {
+                    return;
+                }
+                gameState.chatLog.push({ sender: data.sender, text: data.text });
+                if (gameState.chatLog.length > 50) gameState.chatLog.shift();
+                broadcastState();
+            } else if (data.type === 'UPDATE_STATS') {
+                gameState.playerStats[data.name] = data.stats;
+                broadcastState();
+            }
+        }
+
+        function handleClientData(data) {
+            if (data.type === 'STATE_UPDATE') {
+                gameState = data.state;
+                updateGameUI();
+            } else if (data.type === 'SEER_RESULT') {
+                let msg = `[Seer Vision] ${data.target} is ${data.isWolf ? 'a WEREWOLF 🐺' : 'Innocent 🛡️'}.`;
+                gameState.chatLog.push({ sender: 'System', text: msg });
+                updateChatUI();
+            } else if (data.type === 'CINEMATIC') {
+                showCinematic(data.title, data.content);
+            }
+        }
+
+        function broadcastState() {
+            let payload = { type: 'STATE_UPDATE', state: gameState };
+            connections.forEach(c => {
+                if (c && c.open) c.send(payload);
+            });
+            updateGameUI();
+        }
+
+        function updateLobbyUI() {
+            document.getElementById('player-count').innerText = gameState.players.length;
+            let list = document.getElementById('player-list');
+            list.innerHTML = '';
+            gameState.players.forEach(p => {
+                let li = document.createElement('li');
+                li.style.padding = '3px 0';
+                li.style.borderBottom = '1px dashed #7a3b1e';
+                li.innerHTML = `🛡️ ${p}`;
+                list.appendChild(li);
+            });
         }
 
         function startP2PGame() {
-            if (!isHost) return;
-            const w = parseInt(document.getElementById('setting-wolves').value);
-            const se = parseInt(document.getElementById('setting-seers').value);
-            const d = parseInt(document.getElementById('setting-doctors').value);
-            const wt = parseInt(document.getElementById('setting-witches').value);
-            const h = parseInt(document.getElementById('setting-hunters').value);
-            const revealRoles = document.getElementById('setting-reveal-roles').checked;
+            if (gameState.players.length < 1) {
+                alert('Need at least 1 resident to start.');
+                return;
+            }
 
-            if (w + se + d + wt + h >= gameState.players.length) { alert('Too many roles selected for player count!'); return; }
+            let wolvesCount = parseInt(document.getElementById('setting-wolves').value) || 1;
+            let seersCount = parseInt(document.getElementById('setting-seers').value) || 1;
+            let doctorsCount = parseInt(document.getElementById('setting-doctors').value) || 1;
+            let witchesCount = parseInt(document.getElementById('setting-witches').value) || 1;
+            let huntersCount = parseInt(document.getElementById('setting-hunters').value) || 1;
 
-            gameState.settings = { wolves: w, seers: se, doctors: d, witches: wt, hunters: h, nightTime: 30, dayTime: 45, revealRoles: revealRoles };
-            gameState.started = true;
-            gameState.phase = 'night';
-            gameState.timeLeft = 30;
-            gameState.winner = null;
-            hasCollectedWinReward = false;
-            gameState.playerStats[myName] = myStats;
+            gameState.settings.wolves = wolvesCount;
+            gameState.settings.seers = seersCount;
+            gameState.settings.doctors = doctorsCount;
+            gameState.settings.witches = witchesCount;
+            gameState.settings.hunters = huntersCount;
+            gameState.settings.revealRoles = document.getElementById('setting-reveal-roles').checked;
 
             let shuffled = [...gameState.players].sort(() => 0.5 - Math.random());
             gameState.roles = {};
-            gameState.alive = {};
-            gameState.witchPotions = {};
-            gameState.deathCauses = {};
-            let idx = 0;
-
-            gameState.players.forEach(p => gameState.alive[p] = true);
-
-            for (let i = 0; i < w; i++) gameState.roles[shuffled[idx++]] = 'Werewolf';
-            for (let i = 0; i < se; i++) gameState.roles[shuffled[idx++]] = 'Seer';
-            for (let i = 0; i < d; i++) gameState.roles[shuffled[idx++]] = 'Doctor';
-            for (let i = 0; i < wt; i++) {
-                let witchName = shuffled[idx++];
-                gameState.roles[witchName] = 'Witch';
-                gameState.witchPotions[witchName] = { save: true, kill: true };
+            
+            let assigned = 0;
+            for (let i = 0; i < wolvesCount && assigned < shuffled.length; i++) {
+                gameState.roles[shuffled[assigned++]] = 'werewolf';
             }
-            for (let i = 0; i < h; i++) gameState.roles[shuffled[idx++]] = 'Hunter';
-            while (idx < shuffled.length) gameState.roles[shuffled[idx++]] = 'Villager';
+            for (let i = 0; i < seersCount && assigned < shuffled.length; i++) {
+                gameState.roles[shuffled[assigned++]] = 'seer';
+            }
+            for (let i = 0; i < doctorsCount && assigned < shuffled.length; i++) {
+                gameState.roles[shuffled[assigned++]] = 'doctor';
+            }
+            for (let i = 0; i < witchesCount && assigned < shuffled.length; i++) {
+                gameState.roles[shuffled[assigned++]] = 'witch';
+            }
+            for (let i = 0; i < huntersCount && assigned < shuffled.length; i++) {
+                gameState.roles[shuffled[assigned++]] = 'hunter';
+            }
+            while (assigned < shuffled.length) {
+                gameState.roles[shuffled[assigned++]] = 'villager';
+            }
 
-            startHostTimer();
+            gameState.players.forEach(p => {
+                gameState.alive[p] = true;
+                gameState.witchPotions[p] = { heal: true, poison: true };
+            });
+
+            gameState.started = true;
+            gameState.phase = 'night';
+            gameState.timeLeft = gameState.settings.nightTime;
+            gameState.narrative = 'Night falls over Salem. The Werewolves stalk the darkness...';
+            gameState.chatLog = [{ sender: 'System', text: 'The Salem Trial has commenced. Night phase has begun.' }];
+
             broadcastState();
+            runGameLoop();
         }
 
-        function startHostTimer() {
-            if (!isHost) return;
+        function runGameLoop() {
             if (gameInterval) clearInterval(gameInterval);
-
+            
             gameInterval = setInterval(() => {
-                if (gameState.winner) { clearInterval(gameInterval); return; }
-                if (gameState.phase !== 'hunter_revenge') {
-                    gameState.timeLeft--;
-                    if (gameState.timeLeft <= 0) {
-                        transitionPhase();
+                if (!isHost) return;
+
+                gameState.timeLeft--;
+                if (gameState.timeLeft <= 0) {
+                    if (gameState.phase === 'night') {
+                        resolveNightPhase();
+                        if (checkWinCondition()) { broadcastState(); clearInterval(gameInterval); return; }
+                        gameState.phase = 'day';
+                        gameState.timeLeft = gameState.settings.dayTime;
+                        gameState.narrative = 'Dawn breaks. The town gathers to discuss and vote on suspects.';
+                    } else {
+                        resolveDayPhase();
+                        if (checkWinCondition()) { broadcastState(); clearInterval(gameInterval); return; }
+                        gameState.phase = 'night';
+                        gameState.timeLeft = gameState.settings.nightTime;
+                        gameState.narrative = 'Night falls once more over the colony.';
                     }
+                    gameState.nightActions = { kill: null, save: null, poison: null, inspect: null };
+                    gameState.votes = {};
                 }
                 broadcastState();
             }, 1000);
         }
 
-        function transitionPhase() {
-            if (!isHost) return;
-            if (gameState.phase === 'night') {
-                resolveNight();
-                if (checkWinCondition()) return;
-                
-                let deaths = Object.keys(gameState.deathCauses);
-                let html = '';
-                if (deaths.length > 0) {
-                    html += `<div style="margin-bottom:15px; font-weight:700; color:#ff8c00;">Tragedy struck the colony overnight:</div>`;
-                    deaths.forEach(deadPlayer => {
-                        let cause = gameState.deathCauses[deadPlayer];
-                        let pStats = gameState.playerStats[deadPlayer] || { equippedIcon: defaultStats.equippedIcon };
-                        let iconHtml = getSafeIconImage(pStats.equippedIcon || defaultStats.equippedIcon, 'common', deadPlayer, 36);
-                        let roleTag = gameState.settings.revealRoles ? ` <span style="color:var(--accent-gold); font-size:0.9rem;">(${gameState.roles[deadPlayer]})</span>` : '';
-                        
-                        html += `<div style="display:flex; align-items:center; justify-content:center; gap:12px; margin-bottom:10px; background:#150602; padding:8px; border-radius:6px; border:1px solid var(--panel-border);">
-                            ${iconHtml}
-                            <div style="text-align:left;"><b>${deadPlayer}</b>${roleTag}<br><span style="font-size:0.8rem; color:#d1b38e; font-style:italic;">Cause: ${cause}</span></div>
-                        </div>`;
-                    });
-                } else {
-                    html += `<div style="font-size:1.1rem; font-style:italic; color:var(--accent-gold); margin:20px 0;">The night was dead quiet. No one perished.</div>`;
-                }
+        function resolveNightPhase() {
+            let killed = gameState.nightActions.kill;
+            let saved = gameState.nightActions.save;
+            let poisoned = gameState.nightActions.poison;
 
-                let cinematic = { title: "DAWN BREAKS", html: html };
+            let report = 'Night Report: ';
+            let deaths = [];
 
-                if (gameState.pendingHunter) {
-                    gameState.phase = 'hunter_revenge';
-                } else {
-                    gameState.phase = 'day';
-                    gameState.timeLeft = gameState.settings.dayTime;
-                    gameState.narrative = 'Day has broken. Discuss who among you is suspicious!';
-                }
-                broadcastState(cinematic);
-
-            } else if (gameState.phase === 'day') {
-                gameState.phase = 'voting';
-                gameState.timeLeft = 20;
-                gameState.narrative = 'Voting time! Cast your votes on who to execute.';
-                broadcastState();
-            } else if (gameState.phase === 'voting') {
-                let executed = resolveVotes();
-                if (checkWinCondition()) return;
-
-                let cinematic = null;
-                if (executed) {
-                    let pStats = gameState.playerStats[executed] || { equippedIcon: defaultStats.equippedIcon };
-                    let iconHtml = getSafeIconImage(pStats.equippedIcon || defaultStats.equippedIcon, 'common', executed, 42);
-                    let roleTag = gameState.settings.revealRoles ? ` Their true role was <b style="color:var(--accent-gold);">${gameState.roles[executed]}</b>.` : '';
-                    
-                    let html = `<div style="display:flex; align-items:center; justify-content:center; gap:15px; margin:15px 0; background:#150602; padding:12px; border-radius:6px; border:1px solid var(--panel-border);">
-                        ${iconHtml}
-                        <div style="text-align:left;"><b style="font-size:1.2rem; color:var(--accent-gold);">${executed}</b> was sentenced to the gallows.${roleTag}</div>
-                    </div>`;
-                    cinematic = { title: "TRIAL VERDICT", html: html };
-                }
-
-                if (gameState.pendingHunter) {
-                    gameState.phase = 'hunter_revenge';
-                } else {
-                    gameState.phase = 'night';
-                    gameState.timeLeft = gameState.settings.nightTime;
-                    gameState.narrative = 'Night falls once more. Special roles take action.';
-                }
-                broadcastState(cinematic);
+            if (killed && killed !== saved && gameState.alive[killed]) {
+                gameState.alive[killed] = false;
+                deaths.push(killed);
+                gameState.deathCauses[killed] = 'werewolf';
             }
-        }
-
-        function handleClientAction(name, action, target) {
-            if (!isHost) return;
-            let role = gameState.roles[name];
-
-            if (action === 'wolf_kill' && role === 'Werewolf') {
-                gameState.nightActions.kill = target;
-            } else if (action === 'seer_inspect' && role === 'Seer') {
-                let targetRole = gameState.roles[target];
-                let alignment = (targetRole === 'Werewolf') ? 'Werewolf (Monster)' : 'Innocent / Townfolk';
-                gameState.seerResults[name] = `Vision on ${target}: They appear to be ${alignment}.`;
-            } else if (action === 'doctor_inspect' && role === 'Doctor') {
-                let cause = gameState.deathCauses[target] || "Alive / No recent wounds recorded.";
-                gameState.doctorResults[name] = `Forensic review on ${target}: ${cause}`;
-            } else if (action === 'witch_save' && role === 'Witch' && gameState.witchPotions[name]?.save) {
-                gameState.nightActions.save = target;
-                gameState.witchPotions[name].save = false;
-            } else if (action === 'witch_poison' && role === 'Witch' && gameState.witchPotions[name]?.kill) {
-                gameState.nightActions.poison = target;
-                gameState.witchPotions[name].kill = false;
-            } else if (action === 'vote') {
-                gameState.votes[name] = target;
-            } else if (action === 'hunter_shot' && gameState.pendingHunter === name) {
-                gameState.alive[target] = false;
-                gameState.deathCauses[target] = "Hunter Revenge Shot";
-                gameState.narrative = `${name} (Hunter) shot and killed ${target}!`;
-                gameState.pendingHunter = null;
-                if (!checkWinCondition()) {
-                    gameState.phase = 'night';
-                    gameState.timeLeft = gameState.settings.nightTime;
-                }
+            if (poisoned && gameState.alive[poisoned]) {
+                gameState.alive[poisoned] = false;
+                deaths.push(poisoned);
+                gameState.deathCauses[poisoned] = 'witch';
             }
-            broadcastState();
-        }
 
-        function sendAction(action, target) {
-            if (isHost) {
-                handleClientAction(myName, action, target);
-                if (['wolf_kill', 'seer_inspect', 'doctor_inspect', 'witch_save', 'witch_poison'].includes(action)) {
-                    addXP(750);
-                } else if (action === 'vote') {
-                    addXP(250);
-                }
+            if (deaths.length > 0) {
+                report += `The following residents perished in the night: ${deaths.join(', ')}.`;
+                addXP(750);
             } else {
-                conn.send({ type: 'ACTION', name: myName, action: action, target: target });
-                if (['wolf_kill', 'seer_inspect', 'doctor_inspect', 'witch_save', 'witch_poison'].includes(action)) {
-                    addXP(750);
-                } else if (action === 'vote') {
-                    addXP(250);
-                }
-                if (action !== 'vote') alert('Action locked in: ' + target);
-            }
-        }
-
-        function resolveNight() {
-            let killedByWolf = gameState.nightActions.kill;
-            let savedByWitch = gameState.nightActions.save;
-            let poisonedByWitch = gameState.nightActions.poison;
-            
-            gameState.deathCauses = {};
-
-            if (killedByWolf && killedByWolf !== savedByWitch && gameState.alive[killedByWolf]) {
-                gameState.alive[killedByWolf] = false;
-                gameState.deathCauses[killedByWolf] = "Visible Claw Marks (Wolf Kill)";
-            }
-            if (poisonedByWitch && gameState.alive[poisonedByWitch]) {
-                gameState.alive[poisonedByWitch] = false;
-                gameState.deathCauses[poisonedByWitch] = "A Bitter Metallic Trace (Witch Poison)";
+                report += 'The night was quiet. Miraculously, no residents died.';
             }
 
-            let deathNames = Object.keys(gameState.deathCauses);
-            if (deathNames.length > 0) {
-                gameState.narrative = `Victims last night: ${deathNames.join(', ')}.`;
-                let deadHunter = deathNames.find(p => gameState.roles[p] === 'Hunter');
-                if (deadHunter) gameState.pendingHunter = deadHunter;
-            } else {
-                gameState.narrative = 'The night was quiet. No one died.';
-            }
-            gameState.nightActions = { kill: null, save: null, poison: null, inspect: null };
-            witchMenuState = null;
-        }
+            gameState.narrative = report;
+            gameState.chatLog.push({ sender: 'System', text: report });
 
-        function resolveVotes() {
-            let counts = {};
-            Object.entries(gameState.votes).forEach(([voter, target]) => {
-                counts[target] = (counts[target] || 0) + 1;
+            let cinematicHTML = `<p>${report}</p>`;
+            if (gameState.settings.revealRoles && deaths.length > 0) {
+                cinematicHTML += `<p style="margin-top:10px; color:var(--accent-gold);">Revealed Roles:</p><ul style="list-style:none; padding:0;">`;
+                deaths.forEach(d => {
+                    let role = gameState.roles[d] || 'villager';
+                    cinematicHTML += `<li><b>${d}</b> was a <span style="color:#fff; text-transform:uppercase;">${role}</span></li>`;
+                });
+                cinematicHTML += `</ul>`;
+            }
+
+            connections.forEach(c => {
+                if (c && c.open) c.send({ type: 'CINEMATIC', title: 'DAWN REPORT', content: cinematicHTML });
             });
-            let sorted = Object.keys(counts).sort((a,b) => counts[b] - counts[a]);
-            
-            if (sorted.length > 0 && counts[sorted[0]] >= 1) {
-                let executed = sorted[0];
-                gameState.alive[executed] = false;
-                gameState.deathCauses[executed] = "Sentenced by Village Vote";
-                gameState.narrative = `The village executed ${executed} (${gameState.roles[executed]}).`;
-                if (gameState.roles[executed] === 'Hunter') gameState.pendingHunter = executed;
-                gameState.votes = {};
-                return executed;
-            } else {
-                gameState.narrative = 'The vote was inconclusive.';
-                gameState.votes = {};
-                return null;
+            showCinematic('DAWN REPORT', cinematicHTML);
+        }
+
+        function resolveDayPhase() {
+            let voteCounts = {};
+            Object.values(gameState.votes).forEach(target => {
+                if (target) voteCounts[target] = (voteCounts[target] || 0) + 1;
+            });
+
+            let suspect = null;
+            let maxVotes = 0;
+            let tie = false;
+
+            for (let [target, count] of Object.entries(voteCounts)) {
+                if (count > maxVotes) {
+                    maxVotes = count;
+                    suspect = target;
+                    tie = false;
+                } else if (count === maxVotes) {
+                    tie = true;
+                }
             }
+
+            let report = '';
+            if (suspect && !tie && maxVotes > 0) {
+                gameState.alive[suspect] = false;
+                gameState.deathCauses[suspect] = 'hanging';
+                let roleStr = gameState.settings.revealRoles ? ` They were a <b>${(gameState.roles[suspect] || 'villager').toUpperCase()}</b>.` : '';
+                report = `Town Trial Outcome: The colony condemned <b>${suspect}</b> to the gallows with ${maxVotes} votes.${roleStr}`;
+                addXP(250);
+            } else {
+                report = 'Town Trial Outcome: The town was too divided or cast no majority vote. No one was hanged today.';
+            }
+
+            gameState.narrative = report;
+            gameState.chatLog.push({ sender: 'System', text: report });
+
+            connections.forEach(c => {
+                if (c && c.open) c.send({ type: 'CINEMATIC', title: 'TRIAL VERDICT', content: `<p>${report}</p>` });
+            });
+            showCinematic('TRIAL VERDICT', `<p>${report}</p>`);
+        }
+
+        function checkVoteConsensus() {
+            // Host logic for tracking live vote counts during day
         }
 
         function checkWinCondition() {
-            let alivePlayers = gameState.players.filter(p => gameState.alive[p]);
-            let aliveWolves = alivePlayers.filter(p => gameState.roles[p] === 'Werewolf');
-            let aliveVillagers = alivePlayers.filter(p => gameState.roles[p] !== 'Werewolf');
+            let aliveWolves = 0;
+            let aliveTown = 0;
 
-            if (aliveWolves.length === 0) {
-                gameState.winner = 'Villagers Win!';
-                gameState.narrative = gameState.winner;
-                addXP(500);
+            gameState.players.forEach(p => {
+                if (gameState.alive[p]) {
+                    if (gameState.roles[p] === 'werewolf') aliveWolves++;
+                    else aliveTown++;
+                }
+            });
+
+            if (aliveWolves === 0) {
+                gameState.winner = 'Town';
+                gameState.narrative = 'Victory! The Werewolves have been purged from Salem.';
+                grantVictoryRewards();
                 return true;
-            } else if (aliveWolves.length >= aliveVillagers.length) {
-                gameState.winner = 'Werewolves Win!';
-                gameState.narrative = gameState.winner;
-                if (gameState.roles[myName] === 'Werewolf') addXP(500);
+            } else if (aliveWolves >= aliveTown) {
+                gameState.winner = 'Werewolves';
+                gameState.narrative = 'Defeat! The Werewolves have overrun the colony.';
                 return true;
             }
             return false;
         }
 
-        function renderUI() {
-            if (!gameState.started) {
-                document.getElementById('player-count').innerText = gameState.players.length;
-                const listEl = document.getElementById('player-list');
-                listEl.innerHTML = '';
-                gameState.players.forEach(p => {
-                    const li = document.createElement('li');
-                    let pStats = gameState.playerStats[p] || { equippedIcon: defaultStats.equippedIcon };
-                    let iconPath = pStats.equippedIcon || defaultStats.equippedIcon;
-                    let foundObj = ALL_ICONS.find(i => i.path === iconPath);
-                    let rarity = foundObj ? foundObj.rarity : 'common';
-                    let iconHtml = getSafeIconImage(iconPath, rarity, p, 16);
-                    li.innerHTML = `<span style="vertical-align:middle; display:inline-block; margin-right:4px;">${iconHtml}</span> ${p} ${p === gameState.host ? '<small style="color:#ffe680; font-weight:900;">Host</small>' : ''}`;
-                    listEl.appendChild(li);
-                });
-            } else {
-                document.getElementById('auth-form-section').classList.add('hidden');
-                document.getElementById('lobby-active-section').classList.add('hidden');
-                document.getElementById('game-screen-grid').classList.remove('hidden');
+        function grantVictoryRewards() {
+            let myRole = gameState.roles[myName] || 'villager';
+            let isTownWin = gameState.winner === 'Town';
+            let iWon = (isTownWin && myRole !== 'werewolf') || (!isTownWin && myRole === 'werewolf');
+            
+            if (iWon && !hasCollectedWinReward) {
+                hasCollectedWinReward = true;
+                myStats.coins += 1;
+                localStorage.setItem('ww_stats', JSON.stringify(myStats));
+            }
+        }
 
-                const myRole = gameState.roles[myName] || 'villager';
-                const isAlive = gameState.alive[myName];
+        function updateGameUI() {
+            if (!gameState.started) return;
 
-                if (lastPhaseAnimated !== gameState.phase) {
-                    if (gameState.phase === 'night') triggerSkyAnimation(true);
-                    else if (gameState.phase === 'day' || gameState.phase === 'voting') triggerSkyAnimation(false);
-                    lastPhaseAnimated = gameState.phase;
-                }
+            document.getElementById('auth-form-section').classList.add('hidden');
+            document.getElementById('lobby-active-section').classList.add('hidden');
+            document.getElementById('game-screen-grid').classList.remove('hidden');
 
-                document.getElementById('my-role-display').innerText = myRole.toLowerCase();
-                document.getElementById('game-narrative').innerText = gameState.narrative;
+            let isNight = gameState.phase === 'night';
+            document.getElementById('phase-label').innerText = gameState.phase.toUpperCase();
+            document.getElementById('timer-display').innerText = `Time Left: ${gameState.timeLeft}s`;
+            document.getElementById('game-narrative').innerText = gameState.narrative;
 
-                if (gameState.winner) {
-                    if (!hasCollectedWinReward) {
-                        hasCollectedWinReward = true;
-                        let playerRole = gameState.roles[myName] || 'Villager';
-                        let wonAsWolf = (gameState.winner.includes('Werewolves') && playerRole === 'Werewolf');
-                        let wonAsTown = (gameState.winner.includes('Villagers') && playerRole !== 'Werewolf');
-                        
-                        if (wonAsWolf || wonAsTown) {
-                            myStats.coins += 1;
-                            localStorage.setItem('ww_stats', JSON.stringify(myStats));
-                        }
-                    }
+            let myRole = gameState.roles[myName] || 'villager';
+            document.getElementById('my-role-display').innerText = myRole;
 
-                    document.getElementById('phase-label').innerText = 'GAME OVER';
-                    document.getElementById('timer-display').innerText = gameState.winner;
-                    document.getElementById('target-list').innerHTML = `<button onclick="resetToTitle()" class="action-btn">Return to Menu</button>`;
-                    renderChatLogs();
-                    return;
-                }
+            if (lastPhaseAnimated !== gameState.phase) {
+                lastPhaseAnimated = gameState.phase;
+                triggerSkyAnimation(isNight);
+            }
 
-                let phaseText = gameState.phase === 'hunter_revenge' ? 'HUNTER REVENGE' : gameState.phase.toUpperCase();
-                document.getElementById('phase-label').innerText = `${phaseText}`;
-                document.getElementById('timer-display').innerText = gameState.phase === 'hunter_revenge' ? 'Awaiting Shot' : `Time Left: ${gameState.timeLeft}s`;
+            updateTargetList();
+            updateChatUI();
+            updateVotesBox();
+        }
 
-                let abilityBox = document.getElementById('ability-status-box');
-                if (myRole === 'Werewolf') abilityBox.innerText = 'Devour Target';
-                else if (myRole === 'Seer') abilityBox.innerText = 'Inspect Alignment';
-                else if (myRole === 'Doctor') abilityBox.innerText = 'Examine Corpse';
-                else if (myRole === 'Witch') abilityBox.innerText = 'Save / Poison';
-                else if (myRole === 'Hunter') abilityBox.innerText = 'Revenge Shot';
-                else abilityBox.innerText = 'none';
+        function updateTargetList() {
+            let container = document.getElementById('target-list');
+            container.innerHTML = '';
 
-                let votesBox = document.getElementById('votes-display-box');
-                let voteCounts = {};
-                Object.values(gameState.votes).forEach(t => voteCounts[t] = (voteCounts[t] || 0) + 1);
-                let voteHtml = '';
-                for (let [target, count] of Object.entries(voteCounts)) {
-                    voteHtml += `<div>${target}: ${count} votes</div>`;
-                }
-                votesBox.innerHTML = voteHtml || '<div style="color:#ffe680;">No votes cast yet</div>';
+            let myRole = gameState.roles[myName] || 'villager';
+            let isAlive = gameState.alive[myName];
 
-                const targetList = document.getElementById('target-list');
-                targetList.innerHTML = '';
+            if (!isAlive) {
+                container.innerHTML = `<div style="font-style:italic; color:#d1b38e; text-align:center;">You have perished and can no longer act or chat. Rest in peace.</div>`;
+                document.getElementById('ability-status-box').innerText = 'Deceased';
+                return;
+            }
 
-                if (!isAlive && gameState.phase !== 'hunter_revenge') {
-                    targetList.innerHTML = '<div style="text-align:center; font-size:13px; font-weight:900;">You are dead. Watch as a ghost.</div>';
-                    renderChatLogs();
-                    return;
-                }
+            let titleHeader = document.getElementById('death-header-title');
 
-                if (gameState.phase === 'hunter_revenge' && gameState.pendingHunter === myName) {
-                    document.getElementById('death-header-title').innerText = 'YOU WERE KILLED - TAKE REVENGE';
+            if (gameState.phase === 'night') {
+                if (myRole === 'werewolf') {
+                    titleHeader.innerText = 'Night Action: Choose Victim';
+                    document.getElementById('ability-status-box').innerText = 'Werewolf Hunt';
                     gameState.players.forEach(p => {
-                        if (p !== myName && gameState.alive[p]) {
+                        if (gameState.alive[p] && gameState.roles[p] !== 'werewolf') {
                             let btn = document.createElement('button');
                             btn.className = 'action-btn';
-                            btn.innerText = `Shoot ${p}`;
-                            btn.onclick = () => sendAction('hunter_shot', p);
-                            targetList.appendChild(btn);
+                            btn.style.cssText = 'padding:6px; margin-bottom:6px; font-size:0.9rem; background:#551111;';
+                            btn.innerText = `Devour ${p}`;
+                            btn.onclick = () => {
+                                gameState.nightActions.kill = p;
+                                if (isHost) {
+                                    // Host updates own action
+                                } else {
+                                    conn.send({ type: 'ACTION', action: 'kill', target: p });
+                                }
+                                alert(`Targeted ${p} for the hunt.`);
+                            };
+                            container.appendChild(btn);
                         }
                     });
-                } else if (gameState.phase === 'night') {
-                    document.getElementById('death-header-title').innerText = 'NIGHT ABILITIES';
-                    if (myRole === 'Werewolf') {
-                        gameState.players.forEach(p => {
-                            if (p !== myName && gameState.alive[p]) {
-                                let btn = document.createElement('button');
-                                btn.className = 'action-btn';
-                                btn.innerText = `Kill ${p}`;
-                                btn.onclick = () => sendAction('wolf_kill', p);
-                                targetList.appendChild(btn);
-                            }
-                        });
-                    } else if (myRole === 'Seer') {
-                        if (gameState.seerResults[myName]) {
-                            let res = document.createElement('div');
-                            res.style.color = '#ffe680';
-                            res.style.fontWeight = '900';
-                            res.style.marginBottom = '8px';
-                            res.style.textShadow = '1px 1px 2px #000';
-                            res.innerText = gameState.seerResults[myName];
-                            targetList.appendChild(res);
+                } else if (myRole === 'doctor') {
+                    titleHeader.innerText = 'Night Action: Protect Resident';
+                    document.getElementById('ability-status-box').innerText = 'Doctor Save';
+                    gameState.players.forEach(p => {
+                        if (gameState.alive[p]) {
+                            let btn = document.createElement('button');
+                            btn.className = 'action-btn';
+                            btn.style.cssText = 'padding:6px; margin-bottom:6px; font-size:0.9rem; background:#114422;';
+                            btn.innerText = `Protect ${p}`;
+                            btn.onclick = () => {
+                                gameState.nightActions.save = p;
+                                if (!isHost) conn.send({ type: 'ACTION', action: 'save', target: p });
+                                alert(`Protected ${p} for the night.`);
+                            };
+                            container.appendChild(btn);
                         }
-                        gameState.players.forEach(p => {
-                            if (p !== myName && gameState.alive[p]) {
-                                let btn = document.createElement('button');
-                                btn.className = 'action-btn';
-                                btn.style.background = '#4a2511';
-                                btn.innerText = `Inspect ${p}`;
-                                btn.onclick = () => sendAction('seer_inspect', p);
-                                targetList.appendChild(btn);
-                            }
-                        });
-                    } else if (myRole === 'Doctor') {
-                        if (gameState.doctorResults[myName]) {
-                            let res = document.createElement('div');
-                            res.style.color = '#ffe680';
-                            res.style.fontWeight = '900';
-                            res.style.marginBottom = '5px';
-                            res.style.textShadow = '1px 1px 2px #000';
-                            res.innerText = gameState.doctorResults[myName];
-                            targetList.appendChild(res);
-                        }
-                        gameState.players.forEach(p => {
-                            if (!gameState.alive[p]) {
-                                let btn = document.createElement('button');
-                                btn.className = 'action-btn';
-                                btn.style.background = '#4a2511';
-                                btn.innerText = `Examine Corpse: ${p}`;
-                                btn.onclick = () => sendAction('doctor_inspect', p);
-                                targetList.appendChild(btn);
-                            }
-                        });
-                    } else if (myRole === 'Witch') {
-                        let potions = gameState.witchPotions[myName] || { save: false, kill: false };
-                        if (!witchMenuState) {
-                            if (potions.save) {
-                                let saveBtn = document.createElement('button');
-                                saveBtn.className = 'action-btn';
-                                saveBtn.innerText = 'Use Save Potion';
-                                saveBtn.onclick = () => { witchMenuState = 'save'; renderUI(); };
-                                targetList.appendChild(saveBtn);
-                            }
-                            if (potions.kill) {
-                                let poisonBtn = document.createElement('button');
-                                poisonBtn.className = 'action-btn';
-                                poisonBtn.style.background = '#a94442';
-                                poisonBtn.innerText = 'Use Poison Potion';
-                                poisonBtn.onclick = () => { witchMenuState = 'poison'; renderUI(); };
-                                targetList.appendChild(poisonBtn);
-                            }
-                        } else if (witchMenuState === 'save') {
-                            gameState.players.forEach(p => {
-                                let btn = document.createElement('button');
-                                btn.className = 'action-btn';
-                                btn.innerText = `Save ${p}`;
-                                btn.onclick = () => sendAction('witch_save', p);
-                                targetList.appendChild(btn);
-                            });
-                        } else if (witchMenuState === 'poison') {
-                            gameState.players.forEach(p => {
-                                if (p !== myName && gameState.alive[p]) {
-                                    let btn = document.createElement('button');
-                                    btn.className = 'action-btn';
-                                    btn.style.background = '#a94442';
-                                    btn.innerText = `Poison ${p}`;
-                                    btn.onclick = () => sendAction('witch_poison', p);
-                                    targetList.appendChild(btn);
-                                }
-                            });
-                        }
-                    } else {
-                        targetList.innerHTML = '<div style="text-align:center; font-size:13px; font-weight:900;">Sleeping soundly...</div>';
-                    }
-                } else if (gameState.phase === 'voting') {
-                    document.getElementById('death-header-title').innerText = 'CAST YOUR VOTE';
+                    });
+                } else if (myRole === 'seer') {
+                    titleHeader.innerText = 'Night Action: Inspect Resident';
+                    document.getElementById('ability-status-box').innerText = 'Seer Vision';
                     gameState.players.forEach(p => {
                         if (p !== myName && gameState.alive[p]) {
                             let btn = document.createElement('button');
                             btn.className = 'action-btn';
-                            let isMyVote = gameState.votes[myName] === p;
-                            btn.innerText = isMyVote ? `✓ Voted for ${p}` : `Vote ${p}`;
-                            if (isMyVote) btn.style.background = '#2e6b2e';
-                            btn.onclick = () => sendAction('vote', p);
-                            targetList.appendChild(btn);
+                            btn.style.cssText = 'padding:6px; margin-bottom:6px; font-size:0.9rem; background:#332244;';
+                            btn.innerText = `Inspect ${p}`;
+                            btn.onclick = () => {
+                                if (isHost) {
+                                    let isW = (gameState.roles[p] === 'werewolf');
+                                    gameState.chatLog.push({ sender: 'System', text: `[Seer Vision] ${p} is ${isW ? 'a WEREWOLF 🐺' : 'Innocent 🛡️'}.` });
+                                } else {
+                                    conn.send({ type: 'ACTION', action: 'inspect', target: p });
+                                }
+                                alert(`Inspected ${p}. Check town chronicle/chat for results.`);
+                            };
+                            container.appendChild(btn);
                         }
                     });
                 } else {
-                    document.getElementById('death-header-title').innerText = 'DAY DISCUSSION';
-                    targetList.innerHTML = '<div style="text-align:center; font-size:13px; font-weight:900;">Talk with other players and prepare to vote!</div>';
+                    titleHeader.innerText = 'Night Actions';
+                    document.getElementById('ability-status-box').innerText = 'Sleeping / Waiting';
+                    container.innerHTML = `<div style="font-style:italic; color:#d1b38e; text-align:center;">You sleep soundly while night actions unfold around you...</div>`;
                 }
-                renderChatLogs();
+            } else {
+                titleHeader.innerText = 'Day Phase: Vote Suspect';
+                document.getElementById('ability-status-box').innerText = 'Town Vote';
+                gameState.players.forEach(p => {
+                    if (gameState.alive[p]) {
+                        let btn = document.createElement('button');
+                        btn.className = 'action-btn';
+                        btn.style.cssText = 'padding:6px; margin-bottom:6px; font-size:0.9rem; background:#6b4423;';
+                        btn.innerText = `Vote to Hang ${p}`;
+                        btn.onclick = () => {
+                            gameState.votes[myName] = p;
+                            if (isHost) {
+                                checkVoteConsensus();
+                            } else {
+                                conn.send({ type: 'VOTE', voter: myName, target: p });
+                            }
+                            alert(`Voted to hang ${p}.`);
+                        };
+                        container.appendChild(btn);
+                    }
+                });
             }
+        }
+
+        function updateChatUI() {
+            let chatBox = document.getElementById('game-chat-messages');
+            chatBox.innerHTML = '';
+            gameState.chatLog.forEach(msg => {
+                let div = document.createElement('div');
+                div.className = 'chat-msg';
+                div.innerHTML = `<b>${msg.sender}:</b> ${msg.text}`;
+                chatBox.appendChild(div);
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function updateVotesBox() {
+            let box = document.getElementById('votes-display-box');
+            let votesSummary = [];
+            for (let [voter, target] of Object.entries(gameState.votes)) {
+                votesSummary.push(`${voter} ➔ ${target}`);
+            }
+            box.innerText = votesSummary.length > 0 ? 'Current Votes: ' + votesSummary.join(', ') : 'No votes cast yet.';
+        }
+
+        function sendChat() {
+            let input = document.getElementById('game-chat-input');
+            let text = input.value.trim();
+            if (!text) return;
+
+            // Enforce dead players cannot chat rule locally and via server
+            if (gameState.alive[myName] === false) {
+                alert('You are dead and cannot chat!');
+                input.value = '';
+                return;
+            }
+
+            let msg = { sender: myName, text: text };
+
+            if (isHost) {
+                gameState.chatLog.push(msg);
+                if (gameState.chatLog.length > 50) gameState.chatLog.shift();
+                broadcastState();
+            } else {
+                conn.send({ type: 'CHAT', sender: myName, text: text });
+            }
+
+            input.value = '';
         }
     </script>
 </body>
